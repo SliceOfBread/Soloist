@@ -1,0 +1,3029 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="mobile-web-app-capable" content="yes">
+
+	<title>The Gallerist (Solo)</title>
+
+	<style>
+	canvas {
+		display: block;
+		padding: 0px;
+		margin: 0;
+        float: left;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+	}
+	aside {
+		padding:5px;
+        float: left;      
+	}
+
+</style>
+</head>
+<body>
+<noscript>
+<p>For full functionality of this page it is necessary to enable JavaScript.
+Here are the <a href="http://www.enable-javascript.com/" target="_blank">
+instructions how to enable JavaScript in your web browser</a>.</p>
+</noscript>
+<script src="art.js"></script>
+<script src="tix.js"></script>
+<script src="player.js"></script>
+<script src="contract.js"></script>
+<script src="reptile.js"></script>
+<script src="visitor.js"></script>
+
+<script>
+
+var
+    canvas,
+    ctx,
+    width,
+    height,
+    initDone = 0,
+    redraw = 1,
+    clickProc = 0,
+    numPlayers = 1,
+    activePlayer,
+    turnPlayer,
+    state = [],
+    substate = [],
+    gContractNum,
+    artNum,
+    artistNum,
+    price,
+    gActionSection,
+    gArtType,
+    gContractToUse,
+    gFame,
+    gobjArtist,
+    gTixSelected = [0, 0, 0],
+    gTix2Get = 0,
+    gTicketColorToUse,
+    gRepTile,
+    gAsstToGet,
+    gAsstToUse,
+    gNumToHire,
+    gLacRow = 0,
+    gLacCol = 0,
+    totalCelebrity = 0,
+    finishEA = 0,
+    intermediateScoring = 0,
+    eaAvailable = 1,
+    st = { Start: 0, PickAction: 1, DoAction:2, KoPickAction: 3, EAonly: 4, Subroutine: 5, LacerdaKo: 6},
+    assLoc = {desk:0, unemployed:1, contract:2, action: 3, market: 4, pile: 5 },
+    currX=230,
+    currY=320,
+    newX,
+    newY,
+    addX,
+    addY,
+    mTimer,
+    fameTypes = ["none", "0+", "1+", "2+", "3+"],
+    artTypes = ["digital", "painting", "sculpture", "photo"],
+    artistColor = ["red ", "blue "],
+	artTixTypes = ["P", "B", "P/B/W", "P+B/W", "B+P/W", "? != ?","P+B+W", "none"],
+    cancelText = "cancel",
+    artBonus = [4,4,5,5,6,6,7,7,8,8],
+    
+    bonusTypes = ["cont", "asst", "p/b p", "bag", "infl", "$$", "?!=?", "p/b/w", "Fame+", "?"],
+    clickSection = {action: [0,3],
+					tix: [4,6],
+					artists: [7,14],
+					contracts: [15, 19],
+					display: [20, 23],
+					playerContracts: [24, 26],
+					ea: [27, 28],
+					visitor: [29, 31],
+					completedContract: [32, 33],
+					inflTrack: [34, 34],
+					repTiles: [35, 40],
+					intlMkt: [41, 41],
+					unemp: [42, 45],
+					lobbies: [46, 50],
+					cancel: [51, 51]
+					 },
+	clickLocations = [{x:440, y:76, xx:540, yy:182},	// 0 (sales)
+					  {x:600, y:300, xx:765, yy:406},	// 1 (art)
+					  {x:440, y:493, xx:540, yy:605},	// 2 (media)
+					  {x:210, y:300, xx:380, yy:406},	// 3 (market)
+					  {x:831, y:575, xx:910, yy:617},	// 4 (pink ticket)					  
+					  {x:943, y:575, xx:1022, yy:617},	// 5 (brown ticket)					  
+					  {x:1058, y:575, xx:1137, yy:617},	// 6 (white ticket)		
+					  {x:823, y:17, xx:930, yy:128},	// 7 (blue dig artist)					  
+					  {x:823, y:159, xx:930, yy:270},	// 8 (blue paint artist)					  
+					  {x:823, y:288, xx:930, yy:400},	// 9 (blue sculpt artist)					  
+					  {x:823, y:428, xx:930, yy:538},	// 10 (blue photo artist)					  
+					  {x:930, y:17, xx:1038, yy:128},	// 11 (red dig artist)					  
+					  {x:930, y:159, xx:1038, yy:270},	// 12 (red paint artist)					  
+					  {x:930, y:288, xx:1038, yy:400},	// 13 (red sculpt artist)					  
+					  {x:930, y:428, xx:1038, yy:538},	// 14 (red photo artist)					  
+					  {x:17, y:14, xx:90, yy:114},		// 15 (deal contracts)
+					  {x:90, y:14, xx:169, yy:114},		// 16 (deal contracts)
+					  {x:169, y:14, xx:248, yy:114},	// 17 (deal contracts)
+					  {x:248, y:14, xx:327, yy:114},	// 18 (deal contracts)
+					  {x:327, y:14, xx:406, yy:114},	// 19 (deal contracts)
+					  {x:50, y:728, xx:140, yy:816},	// 20 (display art)
+					  {x:140, y:728, xx:230, yy:816},	// 21 (display art)
+					  {x:230, y:728, xx:320, yy:816},	// 22 (display art)
+					  {x:320, y:728, xx:410, yy:816},	// 23 (display art)
+					  {x:170, y:828, xx:235, yy:924},	// 24 (player Contract)
+					  {x:251, y:828, xx:315, yy:924},	// 25 (player Contract)
+					  {x:332, y:828, xx:395, yy:924},	// 26 (player Contract)
+					  {x:640, y:575, xx:760, yy:600}, 	// ea use tix
+					  {x:640, y:620, xx:760, yy:645}, 	// ea place asst
+					  {x:0, y:620, xx:5, yy:645}, 		// visitor (dummy loc)
+					  {x:0, y:620, xx:5, yy:645}, 		// visitor (dunny loc)
+					  {x:0, y:620, xx:5, yy:645}, 		// visitor (dummy loc)
+					  {x:442, y:619, xx:492, yy:683}, 	// completed contract (infl)
+					  {x:492, y:619, xx:542, yy:683}, 	// completed contract ($$)
+					  {x:0, y:673, xx:30, yy:711},		// infl track
+					  {x:50, y:830, xx:87, yy:860},		// reptile 0
+					  {x:87, y:830, xx:125, yy:860},	// reptile 1
+					  {x:125, y:830, xx:163, yy:860},	// reptile 2
+					  {x:50, y:891, xx:87, yy:924},		// reptile 3
+					  {x:87, y:891, xx:125, yy:924},	// reptile 4
+					  {x:125, y:891, xx:163, yy:924},	// reptile 5
+					  {x:45, y:229, xx:180, yy:523},	// intl Market
+					  {x:0, y:620, xx:45, yy:645}, 		// unemployed (dummy loc)
+					  {x:0, y:620, xx:45, yy:645}, 		// unemployed (dummy loc)
+					  {x:0, y:620, xx:45, yy:645}, 		// unemployed (dummy loc)
+					  {x:0, y:620, xx:45, yy:645}, 		// unemployed (dummy loc)
+					  {x:350, y:237, xx:428, yy:263}, // lobbies
+					  {x:565, y:237, xx:643, yy:263}, // lobbies
+					  {x:565, y:441, xx:643, yy:467}, // lobbies
+					  {x:350, y:441, xx:428, yy:467}, // lobbies
+					  {x:458, y:346, xx:536, yy:372}, // plaza
+					  {x:450, y:415, xx:550, yy:445} 	// cancel button
+					  ],		
+					  	  
+    locs  = {action:	0,
+			 ko:		1,
+			 home:		2,
+			 desk:		3,
+			 unemp:		4,
+			 contr:		5,
+			 intlMkt:	6,
+			 pile:		7,
+			 influence:	8
+			},
+			
+	xy = [	[	{x:460, y:98}, 
+				{x:745, y:321},
+				{x:460, y:590},
+				{x:235, y:321}	], // action
+			[	{x:525, y:98},
+				{x:745, y:387},
+				{x:525, y:590},
+				{x:235, y:387}	], // ko
+			[	{x:260, y:175},
+				{x:728, y:175},
+				{x:728, y:490},
+				{x:260, y:490}	], // home
+			[	{x:453, y:746},
+				{x:431, y:756},
+				{x:457, y:772},
+				{x:437, y:783}	], // desk
+			[	{x:17,  y:915}], // unemp
+			[], // contr
+			[], // im
+			[	{x:490, y:-50}],  // pile
+			[	{x:24 , y:680}]		// influence 0
+			 		],
+    
+	
+	deskLoc = [{x:453, y:746},
+			{x:431, y:756},
+			{x:457, y:772},
+			{x:437, y:783}],
+				  
+	influenceUse = 0,
+	allowableClicks = [],
+	allowableImClicks = [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],
+	imRowClicked,
+	imColClicked,
+	startFame = [1, 3, 3, 1],
+	lacerdaLastLoc = -1,
+	lacerdaPlNum,
+	actSpots = [[0,0,0,0],
+                [0,0,0,0]],
+    player = [{me: 0,  enabled:0},
+			  {me: 1,  enabled:0},
+		  	  {me: 2,  enabled:0},
+			  {me: 3,  enabled:0}],
+	soldArt = [[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0]],
+    bagVisitors,
+    artPiles = [[],
+			  [],
+			  [],
+			  []
+			  ],
+	artist = [],
+	artVisitors = [],
+	promos = [4, 4, 4, 4, 4],
+	curatorCards = [[[0,1,1,1], [2,0,1,1]],
+			   [[1,0,1,1], [1,2,1,0]],
+			   [[1,1,0,1], [0,1,2,1]],
+			   [[1,1,1,0], [1,1,0,2]]],
+	curator =  [0,1,2,3],
+	dealerCards = [[[1,0,0,0], [0,1,1,0], [0,0,0,2]],
+				   [[0,1,0,0], [0,0,1,1], [2,0,0,0]],
+				   [[0,0,1,0], [1,0,0,1], [0,2,0,0]],
+				   [[0,0,0,1], [1,1,0,0], [0,0,2,0]]],
+	dealer =  [0,1,2,3],
+			   
+	
+	allReputation = [],
+	allContracts = [],
+	contractPile = [],
+   	contractDisplay = [[], [], [], []],
+	auctionWorks = [],
+   	
+   	intlMkt = [[], [], [], [], [9,1,6], [1,4,5], [6,5,4]],
+   	plazaVisitors,
+   	
+   	animate = 0,
+	pieceImage,
+
+    boardImage;
+    
+function moveIt() {
+ 
+    if (animate) {
+		animate--;
+	} else {
+		clearInterval(mTimer);
+    }
+    drawBoard();
+	
+    
+}
+	
+function calcAnime(curr, dest, anime) {
+	if (anime >= animate) {
+		return ((dest - curr) / animate) + curr;
+	} else {
+		return curr;
+	}
+}
+
+var startTime;
+window.onload = function() {
+	initDone = 1;
+    var d = new Date();
+    msgLog(d);
+    startTime = d.getTime();
+
+	drawBoard();
+};
+
+function writeMessage(canvas, message) {
+    var context = canvas.getContext('2d');
+    drawBoard();
+    context.font = '18pt Calibri';
+    context.fillStyle = 'yellow';
+    context.fillText(message, 10, 25);
+}
+
+function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top
+    };
+}
+
+function drawBoard() {
+	if (clickProc) return;
+	redraw = 0;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle="#97712A";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(boardImage,0,0);
+    ctx.drawImage(playerBoardImage[0], 0, 720);
+	ctx.font = 'bold 20pt Helvetica';
+	
+	// for debug, draw who is on action spots
+	//~ for (var s=0; s<4; s++) {
+		//~ for (var a=0; a<2; a++) {
+			//~ if (actSpots[a][s]) {
+				//~ ctx.fillStyle="green";
+				//~ ctx.fillText(actSpots[a][s].plNum + ":" + actSpots[a][s].pType, xy[a][s].x, xy[a][s].y);
+			//~ }
+		//~ }
+	//~ }
+ 
+	// draw player stuff
+    for (var p=0; p<peeps.length; p++) {
+		peeps[p].draw(p);
+	}
+		
+	
+	//~ ctx.fillStyle = 'white';
+	//~ ctx.fillText("state:" + state[0], 1000, 910);
+	// draw Exec Action button
+        ctx.fillText("Exec Action", 640, 575);
+        ctx.fillStyle = 'gray';
+        ctx.fillRect(640, 575, 120, 24);
+        ctx.fillRect(640, 620, 120, 24);
+        ctx.fillStyle = 'black';
+        ctx.fillText("Use Tix", 645, 599);
+        ctx.fillText("C bonus", 645, 643);
+
+
+	// draw remaining tix
+	ctx.fillStyle = 'white';
+	ctx.lineWidth=5;
+	ctx.strokeStyle = "red";
+	for (var t=0; t<3; t++) {
+		tixRemain[t].draw();
+	}
+	//~ if ((state[0] == st.DoKO) && (player[activePlayer].enabled==2)) {
+		//~ for (t=0; t<3; t++) {
+			//~ if (Math.max(...tixRemain) == tixRemain[t]) {
+				//~ ctx.strokeRect(clickLocations[t+4].x, clickLocations[t+4].y,
+					//~ clickLocations[t+4].xx-clickLocations[t+4].x,
+					//~ clickLocations[t+4].yy-clickLocations[t+4].y);
+			//~ }
+		//~ }
+	//~ }
+	// draw artwork on board
+	for (var a=0; a<4; a++) {
+		ctx.fillStyle = 'white';
+		if (artPiles[a].length == 0) continue;
+		artPiles[a][0].draw();
+		artVisitors[a].draw();
+	}
+	var gameInfoOut = "Auction works:<br>";
+	//draw Auction works
+	for (var w=0; w<auctionWorks.length; w++) {
+		//~ ctx.fillText("Auction:", 1040, 746);
+		//~ ctx.fillText(artTypes[auctionWorks[w].type], 1040-90*w, 766);
+		gameInfoOut += "-" + artTypes[auctionWorks[w].type] + "<br>";
+	}
+	document.getElementById("gameinfo").innerHTML = gameInfoOut;
+	// draw artists
+	for (var c=0; c<2; c++) {
+		for (var n=0; n<4; n++) {
+			var a = n+c*4;
+			if (artist[a].disc) {
+				ctx.fillStyle = 'white';
+				ctx.fillText(artist[a].tokens, artLoc[n].x - 186 + c*108, artLoc[n].y + 112);
+			} else {
+				ctx.fillStyle = 'yellow';
+				ctx.fillText(bonusTypes[artist[a].bonus], artLoc[n].x - 216 + c*108, artLoc[n].y + 57);
+				ctx.fillStyle = 'black';
+				ctx.fillText(artist[a].tokens, artLoc[n].x - 186 + c*108, artLoc[n].y + 112);
+				if (c) {
+					artist[a].visitors.draw();
+					//~ ctx.drawImage(pieceImage, 14*48, 0, 48, 48, artLoc[n].x - 60, artLoc[n].y, 48, 48);
+				}
+			}
+			ctx.fillText("th:"+(artist[a].thumb & 0xf), artLoc[n].x - 216 + c*108, artLoc[n].y + 25);
+			var nextBump;
+			if ((artist[a].initFame < 4) && (artist[a].fame < 11)) {
+				nextBump = (Math.floor((artist[a].fame + 1) / 3) * 3) + 2;
+			} else if (artist[a].fame > 14) {
+				nextBump = 19;
+			} else if ((artist[a].initFame < 4) && (artist[a].fame == 11)) {
+				nextBump = 15;
+			} else {
+				nextBump = (Math.floor((artist[a].fame / 3)) * 3) + 3;
+			}
+				
+			ctx.fillText("f:"+artist[a].fame + "(" + nextBump + ")", artLoc[n].x - 216 + c*108, artLoc[n].y + 90);
+		}
+	}
+	// draw contracts
+	// # left, pileA, B, C, D
+	ctx.fillStyle = 'white';
+	ctx.fillText(contractPile.length, 22, 46);
+	for (var d=0; d<4; d++) {
+		if (contractDisplay[d].length > 0) {
+			contractDisplay[d][0].draw();
+		}
+	}
+	
+	// draw number of promos left
+	ctx.fillStyle = 'black';
+	for (var p=0; p<5; p++) {
+		ctx.fillText(promos[p], 36+p*61, 650);
+	}
+	
+	// draw international market
+	ctx.fillStyle = 'black';
+	for (var r=0; r<4; r++) {
+		for (var c=0; c<3; c++) {
+			if (intlMkt[r][c]) {
+				// draw the reputation tile
+				intlMkt[r][c].draw();
+			}
+		}
+	}
+	
+	plazaVisitors.draw();
+
+	// show visitor bag contents
+	bagVisitors.draw();
+	
+	if (influenceUse) {
+		ctx.fillStyle = 'black';
+		var tmpT;
+		if (influenceUse == 1) {
+			tmpT = "cost $:" + price;
+		} else {
+			tmpT = "fame :" + gFame;
+		}
+		ctx.fillText(tmpT, 428, 660);
+	}
+	
+	
+	if (state[0] == st.Start) {
+		// show starter reputation tiles
+		ctx.fillStyle = "red";
+		for (var t=0; t<4; t++) {
+			repPile[t].draw();
+		}
+	}
+	
+	if (allowableClicks[clickSection.completedContract[0]]) {
+		ctx.fillStyle = "red";
+		ctx.fillText("infl", clickLocations[clickSection.completedContract[0]].x, clickLocations[clickSection.completedContract[0]].y + 40);
+		ctx.fillStyle = "green";
+		ctx.fillText("$$", clickLocations[clickSection.completedContract[1]].x, clickLocations[clickSection.completedContract[1]].y + 40);
+	}
+	
+	if (!animate) {
+		// draw clickable areas
+		if (!drawAllowableClicks() && (finalRound < 3)) {
+            allowableClicks[clickSection.cancel[0]] = 1;
+        }
+        
+        if (allowableClicks[clickSection.cancel[0]]) {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(450, 415, 100, 30);
+            ctx.fillStyle = 'black';
+            switch (allowableClicks[clickSection.cancel[0]]) {
+                case 2: cancelText = "done";
+                    break;
+                case 3: cancelText = "pass";
+                    break;
+                default: cancelText = "cancel";
+            }
+            ctx.fillText(cancelText, 455, 440);
+        }
+	} else {
+		for (var x=0; x<aVisitors.length; x++) {
+			aVisitors[x].draw();
+		}
+	}
+	ctx.font = 'bold 20pt Helvetica';
+
+		
+	
+}
+
+function moneyMsg(msg, pl, amt) {
+	if (amt < 0) {
+		msgLog("Player " + pl + ": pays $" + (-amt) + msg);
+	} else if (amt > 0) {
+		msgLog("Player " + pl + ": gets $" + amt + msg);
+	} else {
+		msgLog("Player " + pl + ": $" + amt + msg);
+	}
+	peeps[pl].money += amt;
+}
+
+function msgLog(msg) {
+	if (!initDone) return;
+	console.log(msg);
+	var textarea = document.getElementById("outbox");
+	textarea.value += msg + "\n---\n";
+	textarea.scrollTop = textarea.scrollHeight;
+}		
+
+var locText = ["Sales", "Art colony", "Media", "Intl. Market"];
+
+function pickAction(loc) {
+	// moving from gallery	 | ActionLoc
+	//   to
+	// unoccupied |  -       | desk asst (or ask) -> oldLoc  
+	// occ. self  | occ->KO  | occ->oldLoc
+	// occ. other | occ->KO  | occ->KO AND
+	//						 | desk asst (or ask) -> oldLoc
+	// moving to a new action spot
+	var oldLocNum = peeps[activePlayer].pawn.locNum;
+	var oldLocType = peeps[activePlayer].pawn.locType;
+	if (oldLocType == locs.action) {
+		actSpots[oldLocType][oldLocNum] = 0;		
+	}
+	msgLog("Player " + activePlayer + " moves to " + locText[loc]);
+	if (oldLocType == locs.home) {
+		// coming from gallery
+		if (actSpots[locs.action][loc]) {
+			// new spot is occupied
+			// move to KO space
+			actSpots[locs.action][loc].setLoc(0, locs.ko);
+				
+		} 
+				
+	} else {
+		// coming from an action loc
+		var w = whatPlayer(actSpots[locs.action][loc]);
+		if ((w.asst) && (w.player == activePlayer)) {
+			// active player's assistant on the space
+			// move that asst. to oldLoc
+			peeps[activePlayer].asst[w.me].setLoc(oldLocNum, locs.action);
+		} else {
+			if (actSpots[locs.action][loc]) {
+				// occupied by other
+				actSpots[locs.action][loc].setLoc(0, locs.ko);
+			}
+			// move desk asst. to oldLoc (TODO if none, ask about other asst.)
+			var tmpA = fromDesk(activePlayer);
+			if (tmpA >= 0) {
+				//  move asst from desk to action
+				peeps[activePlayer].asst[tmpA].setLoc(oldLocNum, locs.action);
+				msgLog("Player " + activePlayer + " leaves asst. at " + locText[oldLocNum]);
+			}
+			
+		}
+	}
+	peeps[activePlayer].pawn.setLoc(loc, locs.action);	
+    setupActionClick(loc);
+}
+
+function lacerdaIM() {
+	//  place lacerda asst in IM
+	while (intlMkt[gLacRow][gLacCol] && (intlMkt[gLacRow][gLacCol].pType == pTypes.asst)) {
+		if (gLacRow < 3) {
+			gLacRow += 4;
+		} else if (!gLacCol) {
+			gLacCol = 2;
+			if (gLacRow != 3) {
+				gLacRow -= 4;
+			} else {
+				break;
+			}
+		} else if (gLacRow != 3) {
+			gLacCol = 0;
+			gLacRow -= 3;
+		} else {
+			break;
+		}
+	}
+	if (!intlMkt[gLacRow][gLacCol] || (intlMkt[gLacRow][gLacCol].pType != pTypes.asst)) {
+		// found spot for lacerda asst
+		var tmpA = fromDesk(lacerdaPlNum);
+		if (tmpA == -1) {	// Lacerda only has assts. on board
+			if (actSpots[locs.ko][3] && (actSpots[locs.ko][3].plNum == lacerdaPlNum)) {
+				tmpA = actSpots[locs.ko][3].pieceNum;
+			} else {
+				for (var s=0; s<4; s++) {
+					if (actSpots[locs.action][s] && (actSpots[locs.action][s].plNum == lacerdaPlNum)) {
+						//~ actSpots[locs.action][s].goHome();
+						tmpA = actSpots[locs.action][s].pieceNum;
+                        break;
+					}
+					if (actSpots[locs.ko][s] && (actSpots[locs.ko][s].plNum == lacerdaPlNum)) {
+						//~ actSpots[locs.ko][s].goHome();
+						tmpA = actSpots[locs.ko][s].pieceNum;
+						break;
+					}
+				}
+			}
+            //~ tmpA = fromDesk(lacerdaPlNum);
+		}
+		if (tmpA >= 0) {
+			msgLog("Lacerda places asst. in IM. Col:" + gLacCol + " Row:" + gLacRow);
+			if (gLacRow < 4) {
+				// discard tile
+				intlMkt[gLacRow][gLacCol].discard();
+			}
+			//  move asst to IM
+			peeps[lacerdaPlNum].asst[tmpA].setLoc(gLacRow*3+gLacCol, locs.intlMkt);
+		} else if (tmpA == -1) {
+            for (var a=0; a<10; a++) {
+                var tmpL = peeps[lacerdaPlNum].asst[a].locType;
+                if ((tmpL == locs.action) || (tmpL == locs.ko)) {
+                    msgLog("Lacerda moves asst. from " + locText[peeps[lacerdaPlNum].asst[a].locNum] + "to IM. Col:" + gLacCol + " Row:" + gLacRow);
+                    peeps[lacerdaPlNum].asst[a].setLoc(gLacRow*3+gLacCol, locs.intlMkt);
+                    break;
+                }
+            }
+            
+		} else {
+			msgLog("Lacerda is out of assts.");
+		}	
+		
+		
+	}
+}
+	
+function setupActionClick(loc) {
+	state[0] = st.DoAction;	
+	gActionSection = loc;
+	substate[0] = 0;
+	clearAllowableClicks();
+	switch (loc) {
+		case 0:
+			if (!setSalesClicks()) {
+                setAllowableClicks(1, clickSection.cancel);
+            }
+			break;
+		case 1:
+			if (!setArtColonyClicks()) {
+                setAllowableClicks(1, clickSection.cancel);
+            }
+			break;
+		case 2:
+			// enable artists (for promo) and unemployed
+            var p = setPromotableClicks(activePlayer);
+            var u = setUnemployedClicks(activePlayer);
+			if (!p && !u) {
+                setAllowableClicks(1, clickSection.cancel);
+            }
+			break;
+		case 3:
+			// enable market locs
+			if (!setAllowableImClicks(activePlayer)) {
+                setAllowableClicks(1, clickSection.cancel);
+            }
+			break;
+	}
+}
+
+function actionSalesOffice(loc) {
+	switch (substate[0]) {
+		case 0: // Main sales location
+			if (loc == clickSection.contracts[0]) {
+				// deal new cards
+				msgLog("Player deals 4 new contracts.");
+				dealMore();
+				setAllowableClicks(0, clickSection.display);
+				setAllowableClicks(0, clickSection.playerContracts);
+                setAllowableClicks(1, clickSection.cancel); // don't like any contracts? Skip'em.
+				allowableClicks[loc] = 0; // do not allow another deal
+			} else if (isIn(loc, ...clickSection.contracts)) {
+				substate[0] = 1;
+				gContractNum = loc - clickSection.contracts[0] - 1;
+				clearAllowableClicks();
+				//  only highlight empty/complete contracts
+				setContractSpaces();
+			} else if (loc == clickSection.cancel[0]) {
+                endTurn();
+			} else { // must be a sale
+				artNum = loc - clickSection.display[0];
+				// highlight contracts of same type of art
+				clearAllowableClicks();
+				substate[0] = 6;
+				for (var c=0; c<3; c++) {
+					var tmpC = peeps[activePlayer].contract[c];
+					if (tmpC) {
+						if (tmpC.faceUp &&
+							(tmpC.artType == (peeps[activePlayer].displayArt[artNum].type))) {
+							// highlight this contract
+							allowableClicks[clickSection.playerContracts[0]+c] = 1;
+						}
+					}
+				}
+							
+			}
+			break;
+		case 1:
+			// picked a location for the contract
+			// gContractNum = pile the contract is coming from
+			var spot = loc - clickSection.playerContracts[0];
+			if (!peeps[activePlayer].contract[spot]) {
+				// spot empty
+				// move contract
+				var tmp = contractDisplay[gContractNum].shift();
+				msgLog("Player gets contract for " + artTypes[tmp.artType] + " art with bonus " + bonusTypes[tmp.bonusType]);
+				tmp.getCard(activePlayer, spot);
+				msgLog("-Placed in spot " + (spot+1));
+				// if contract pile empty, deal new one
+				if (contractDisplay[gContractNum].length == 0) {
+					contractPile[0].dealCard(gContractNum);
+				}
+				if (spot == 2) {
+					// need to select a ticket color
+					clearAllowableClicks();
+					gTix2Get = 1;
+					setGetTixClicks();
+					substate[0] = 5;
+					substate.unshift(SSgetTix);
+					state.unshift(st.Subroutine);
+				} else {
+					// get brown/pink ticket
+					gTixSelected = [spot==1, spot==0, 0];
+					tix2player(activePlayer);
+					endTurn();
+				}
+					
+			} else {
+				// spot has a contract
+				// ASSUME contract complete
+				// is asst on contract?
+				msgLog("-Replacing contract in spot " + (spot+1));
+				for (var a=0; a<10; a++) {
+					if ((peeps[activePlayer].asst[a].locType == locs.contr) && 
+						(peeps[activePlayer].asst[a].locNum == spot)) {
+						// found asst. on the selected contract
+						peeps[activePlayer].asst[a].goHome();
+						break;
+					}
+				}
+				// discard old contract	
+				peeps[activePlayer].contract[spot].discard();
+				// move new contract
+				var tmp = contractDisplay[gContractNum].shift();
+				tmp.getCard(activePlayer, spot);
+				// if contract pile empty, deal new one
+				// if no contracts in pile, reshuffle & deal
+				if (contractPile.length == 0) {
+					dealMore();
+				} else if (contractDisplay[gContractNum].length == 0) {
+					contractPile[0].dealCard(gContractNum);
+				}
+				endTurn();
+			}
+			break;
+		case 5:
+			// selected ticket color we want
+			endTurn();		
+			break;
+		case 6:
+			// contract selected for art sale
+			gContractNum = loc - clickSection.playerContracts[0];
+			// get money for sale
+			var tmpA = peeps[activePlayer].displayArt[artNum];
+			moneyMsg(" for selling " + artistColor[tmpA.byArtist.iAmBlue] + artTypes[tmpA.type], activePlayer, artValue(tmpA.byArtist));
+			// move art from display to sold
+			soldArt[activePlayer][tmpA.type]++;
+			peeps[activePlayer].maxCollectors++;
+			msgLog("Player may now have up to " + peeps[activePlayer].maxCollectors + " Collectors in their gallery");
+			// return signature token
+			tmpA.byArtist.tokens++;
+			// remove art from display
+			peeps[activePlayer].displayArt.splice(artNum, 1);
+			for (var a=0; a<peeps[activePlayer].displayArt.length; a++) {
+				peeps[activePlayer].displayArt[a].slide(a);
+			}
+			// if any asst, return home
+			for (var a=0; a<10; a++) {
+				if ((peeps[activePlayer].asst[a].locType == locs.contr) && (peeps[activePlayer].asst[a].locNum == gContractNum)) {
+					peeps[activePlayer].asst[a].goHome();
+					break;
+				}
+			}
+			// if any visitors in gallery, get selection
+			if (Math.max(...peeps[activePlayer].gallery.num) > 0) {
+				clearAllowableClicks();
+				peeps[activePlayer].gallery.setLeaveClick();
+				substate[0] = 10;
+			} else {
+				// no visitors? get orientation of sold contract
+				clearAllowableClicks();
+				setAllowableClicks(1, clickSection.completedContract);
+				substate[0] = 11;
+			}
+				
+			break;
+		case 10:
+			// decide which way completed contract points
+			var tmpV = loc - clickSection.visitor[0];
+			plazaVisitors.move(tmpV, peeps[activePlayer].gallery);
+			msgLog(tixText[tmpV] + " visitor leaves with art");
+			if (tmpV == 2) {
+				// white visitor selected
+				clearAllowableClicks();
+				setAllowableClicks(1, clickSection.completedContract);
+				substate[0] = 11;
+			} else {
+				peeps[activePlayer].contract[gContractNum].sold(tmpV==1);
+				endTurn();
+			}
+			break;
+		case 11:
+			var tmpD = loc - clickSection.completedContract[0];
+			peeps[activePlayer].contract[gContractNum].sold(tmpD == 1);
+			endTurn();
+			break;
+	}
+}
+
+function actionArtistColony(loc) {
+	clearAllowableClicks();
+	switch (substate[0]) {
+		case 0: // artist action click
+			artistNum = loc - clickSection.artists[0];
+			gArtType = artistNum % 4;
+			gobjArtist = artist[artistNum];
+			if (gobjArtist.disc) {
+				// artist is already discovered, must be buying
+				price = gobjArtist.fame;
+				if (peeps[activePlayer].comm == artistNum) {
+					// buying a commission
+					price = gobjArtist.initFame;
+					gobjArtist.tokens++;
+					peeps[activePlayer].comm = -1;
+					msgLog("Player is buying a commissioned work.");
+				}
+				substate[0] = 1;
+				setInflDiscClick(activePlayer);
+			} else {
+				// discovering artist
+				// gain bonus
+				msgLog("Player discovers " + artistColor[gobjArtist.iAmBlue] + artTypes[gArtType] + " artist");
+				peeps[activePlayer].comm = artistNum;
+				gobjArtist.tokens = 1;
+				gobjArtist.disc = 1;
+				var tmpDelayRedArtist = 0;
+				switch (gobjArtist.bonus) {
+					case 4:	// gain infl
+						peeps[activePlayer].influenceBonus();
+						break;
+					case 5:	// gain $
+						peeps[activePlayer].moneyBonus();
+						break;
+					case 6:	// two different tix
+						gTix2Get = 2;
+						setGetTixClicks();
+						substate[0] = 5;
+						substate.unshift(SSgetTix);
+						state.unshift(st.Subroutine);
+						break;
+					case 7:	// any visitor from plaza
+						// select plaza visitor (if none, select from bag)
+						tmpDelayRedArtist = 1;
+						gFromPlaza = plazaVisitors.setClick(Vall);
+						if (gFromPlaza || bagVisitors.setClick(Vall)) {
+							// visitors from plaza or bag 
+							substate[0] = 6;
+							substate.unshift(SSvisitor);
+							state.unshift(st.Subroutine);
+						} // else no visitors in plaza or bag!
+						break;
+					case 8:	// add fame to any artist
+						// highlight "fameable" artists
+						setArtistFameClick();
+						substate[0] = 5;
+						substate.unshift(SSfame);
+						state.unshift(st.Subroutine);
+						break;
+				}
+				if ((!tmpDelayRedArtist) && (artistNum > 3)) {
+					// red artist, move white visitor 
+					plazaVisitors.move(TCOLwhite, gobjArtist.visitors);
+				}
+				if (state[0] != st.Subroutine) {
+					endTurn();
+				}
+			}
+			break;
+				
+		case 1: // getting price discount
+			if (loc == clickSection.inflTrack[0]) {
+				// clicked for discount, do that then re-run
+				price--;
+				peeps[activePlayer].inflForDisc();
+				setInflDiscClick(activePlayer);
+			} else {
+				// done discounting
+				if (peeps[activePlayer].money >= price) {
+					// move visitors to plaza
+					for (var i=0; i<3; i++) {
+						while (artVisitors[gArtType].num[i]) {
+							plazaVisitors.move(i, artVisitors[gArtType]);
+						}
+					}
+					// pay for art
+					moneyMsg(" for art from " + artistColor[gobjArtist.iAmBlue] + artTypes[gArtType], activePlayer, -price);
+					substate[0] = 2;
+					// increase fame for artist
+					gFame = gobjArtist.fame;
+					if (artPiles[gArtType][0].fame) {
+						// case 4: 3 fame + 1 per collector
+						// case 3: 2 fame + 1 per collector
+						// case 2: 1 fame + 1 per collector
+						// case 1: 0 fame + 1 per collector
+						// case 0: no fame added
+						gFame += artPiles[gArtType][0].fame - 1 + peeps[activePlayer].gallery.num[TCOLwhite];
+					}
+					gFame = Math.min(19, gFame);
+                    if (gFame < 19) {
+                        gFame = Math.min(19, gFame);
+                        if (gFame < 19) {
+                            // check for extra fame boost using influence
+                            substate.unshift(SSfameFromInfl);
+                            state.unshift(st.Subroutine);
+                            setInflFameClick(activePlayer);
+                            clickProc = 0;
+                            break;
+                        }
+                    }
+                    if (gFame == 19) gotCelebrity(activePlayer);
+                    artist[artistNum].fame = gFame;
+                    setInflFameClick(activePlayer);
+					
+				} else {
+					// not enough $$ to pay, auto-cancel
+					endTurn();
+				}
+			}
+			break;
+		case 2: // done adding fame
+            // gain art tix
+            var tmpT = artPiles[gArtType][0].tix
+            gTix2Get = 0;
+            switch (tmpT) {
+                case 0: // get pink ticket
+                case 1: // get brown ticket
+                    gTixSelected = [tmpT==0, tmpT==1, 0];
+                    tix2player(activePlayer);
+                    break;
+                case 2: // get one any ticket
+                    gTix2Get = 1;
+                    break;
+                case 5: // get two different tix
+                    gTix2Get = 1;
+                case 3:	// get pink plus brown/white
+                case 4: // get brown plus pink/white
+                    gTix2Get++;
+                    gTixSelected = [tmpT==3, tmpT==4, 0];
+                    break;
+                //~ case 6: // get 3 tix
+                    //~ gTixSelected = [1, 1, 1];
+                    //~ tix2player(activePlayer);
+                    //~ break;
+                //~ case 7:	// no tix
+                    //~ break;
+            }
+            substate[0] = 3;
+            if (gTix2Get) {
+                setGetTixClicks();
+                substate.unshift(SSgetTix);
+                state.unshift(st.Subroutine);
+                return;
+            }
+			// if don't need tix selection, go straight to substate 3
+		case 3: // got all tix selections
+//			tix2player(activePlayer);
+			// indicate player has bought this art type
+			peeps[activePlayer].everHad[gArtType]++;
+			// move art to player board
+			artPiles[gArtType][0].bought(activePlayer);
+			// Do we gain a repTile?
+			if ((peeps[activePlayer].rep) && (peeps[activePlayer].displayArt.length == 3)) {
+				substate[0] = 4;
+				substate.unshift(SSrepTile);
+				state.unshift(st.Subroutine);
+				gRepTile = peeps[activePlayer].rep;
+				peeps[activePlayer].rep = 0;
+				setRepTileClicks(activePlayer);
+			} else {
+				// pull visitors from bag for new art
+				visitors2art(gArtType);
+				endTurn();
+			}
+			break;
+		case 4: // we get here after repTile location selection	
+            // pull visitors from bag for new art
+            visitors2art(gArtType);
+			// send lobby visitor to plaza
+			var tmpV = peeps[activePlayer].lobby.num;
+			var totV = tmpV[0] + tmpV[1] + tmpV[2];
+			var maxV = Math.max(...tmpV);
+			if (!totV) {
+				// no visitors in lobby, do nothing
+			} else if (totV == maxV){
+				// all visitors are same color, return 1
+				for (var c=0; c<3; c++) {
+					if (tmpV[c]) {
+						// return this color
+						plazaVisitors.move(c, peeps[activePlayer].lobby);
+						break;
+					}
+				}
+			} else {
+				// choose a visitor to return
+				peeps[activePlayer].lobby.setLeaveClick();
+				substate[0] = 7;
+				return;
+			}
+			endTurn();
+			break;
+		case 7: // got lobby visitor selection
+			var tmpV = loc - clickSection.visitor[0];
+			plazaVisitors.move(tmpV, peeps[activePlayer].lobby);
+			endTurn();
+			break;			
+			// pull visitors from bag for new art
+			visitors2art(gArtType);
+			endTurn();
+			break;
+		case 6:	// after getting discover artist bonus visitor from plaza
+			if (artistNum > 3) {
+				// red artist, move white visitor 
+				plazaVisitors.move(TCOLwhite, gobjArtist.visitors);
+			} // go directly to substate 5 below
+		case 5:	// after getting discover artist bonus
+			endTurn();
+			break;
+	}
+}
+			
+function setGetTixClicks() {
+	clearAllowableClicks();
+	if (!gTix2Get) {
+		setAllowableClicks(2, clickSection.cancel); // only allow done
+	} else {
+		for (var c=0; c<3; c++) {
+			allowableClicks[clickSection.tix[0] + c] = !gTixSelected[c];
+			clickLocations[clickSection.tix[0] + c].x = 831 + 113*c;
+			clickLocations[clickSection.tix[0] + c].xx = 910 + 113*c;
+			clickLocations[clickSection.tix[0] + c].y = 575;
+			clickLocations[clickSection.tix[0] + c].yy = 617;
+		}
+	} 
+		
+}
+
+function actionMediaCenter(loc) {
+	clearAllowableClicks();
+	switch (substate[0]) {
+		case 0: // location selected
+			if (loc < clickSection.unemp[0]) {
+				// selected an artist for thumbs up
+				artistNum = loc - clickSection.artists[0];
+				var aThumb = artist[artistNum].thumb & 0xf;
+				// pay influence
+				peeps[activePlayer].useInfluence(aThumb + 1);
+				if (artist[artistNum].thumb > 7) {
+					// move old thumb back to pile
+					promos[aThumb-1]++;
+				}
+				// move promo to artist
+				promos[aThumb]--;
+				artist[artistNum].thumb = (aThumb + 1) | 0x100; // 0x100 indicates a promo tile
+				gTix2Get = 0;
+				substate[0]=4;
+				switch (aThumb+1) {
+					case 3:	// get 2 tix
+						gTix2Get = 1;
+					case 1:	// get 1 tix
+						gTix2Get++;
+						setGetTixClicks();
+						substate[0]=3;
+						substate.unshift(SSgetTix);
+						state.unshift(st.Subroutine);
+						break;
+					case 2: // gain infl
+						peeps[activePlayer].influenceBonus();
+						break;
+					case 4:	// gain money
+						peeps[activePlayer].moneyBonus();
+						break;
+					case 5:	// get visitor from plaza
+						// select plaza visitor (if none, select from bag)
+						gFromPlaza = plazaVisitors.setClick(Vall);
+						if (gFromPlaza || bagVisitors.setClick(Vall)) {
+							// visitors from plaza or bag 
+							substate[0]=3;
+							substate.unshift(SSvisitor);
+							state.unshift(st.Subroutine);
+						} // else no visitors in plaza or bag!
+						break;
+				}
+				if ((state[0] != st.Subroutine) && (artist[artistNum].fame < 19)) {
+					gFame = artist[artistNum].fame + 1;
+					if (gFame < 19) {
+						gFame += peeps[activePlayer].gallery.num[TCOLwhite];
+						gFame = Math.min(19, gFame);
+						if (gFame < 19) {
+							substate.unshift(SSfameFromInfl);
+							state.unshift(st.Subroutine);
+							setInflFameClick(activePlayer);
+							clickProc = 0;
+							return;
+						}
+					}
+                    if (gFame == 19) gotCelebrity(activePlayer);
+					artist[artistNum].fame = gFame;
+                    if (state[0] != st.Subroutine) {
+                        endTurn();
+                    }
+				}
+				
+			} else {
+				// hiring employees
+				gNumToHire = loc - clickSection.unemp[0] + 1;
+				price = 0;
+				var aCost = [6,5,4,3,3,2,2,1];
+				gAsstToGet = peeps[activePlayer].nextHire();
+				for (var a=gAsstToGet + 1 - gNumToHire; a <= gAsstToGet; a++) {
+					price += aCost[a];
+				}
+				gOldInfluence = peeps[activePlayer].infl.locNum;
+				setInflDiscClick(activePlayer);
+				substate[0] = 1;
+			}
+			break;
+		case 1: // get price discount on unemp
+			if (loc == clickSection.inflTrack[0]) {
+				// clicked for discount, do that then re-run
+				price--;
+				peeps[activePlayer].inflForDisc();
+				setInflDiscClick(activePlayer);
+				return;
+			} else {
+				// done discounting
+				if (peeps[activePlayer].money >= price) {
+					moneyMsg(" for " + gNumToHire + " assts.", activePlayer, -price);
+					for (var a=gAsstToGet; a > (gAsstToGet - gNumToHire); a--) {
+						// Note: this loop must run backward in case pink ticket and pick a ticket are in same buy
+						switch (a) {
+							case 0: // gain money
+								peeps[activePlayer].moneyBonus();
+								break;
+							case 2: // gain any color ticket
+								gTix2Get = 1;
+								setGetTixClicks();
+								substate[0]=2;
+								substate.unshift(SSgetTix);
+								state.unshift(st.Subroutine);
+								break;
+							case 4: // gain influence
+								peeps[activePlayer].influenceBonus();
+								break;
+							case 5: // gain pink ticket
+							case 6: // gain brown ticket
+								gTixSelected = [a==5, a==6, 0];
+								tix2player(activePlayer);
+								break;
+						}
+						peeps[activePlayer].asst[a].goHome();
+					}
+					if (gTix2Get) {
+						return; // need tix choice
+					}
+					// no choice (for tix) needed, so go direct to substate 2
+					
+				} else {
+					// not enough money
+					peeps[activePlayer].infl.setLoc(gOldInfluence, locs.influence);
+					endTurn();
+					return;
+				}
+			}
+		case 2: // got all hiring bonuses
+		case 4: // got fame
+			endTurn();
+			break;
+		case 3: // got tix/visitors
+			substate[0] = 4;
+			gFame = artist[artistNum].fame + 1;
+			gFame = Math.min(19, gFame);
+			if (gFame < 19) {
+				gFame += peeps[activePlayer].gallery.num[TCOLwhite];
+				gFame = Math.min(19, gFame);
+				if (gFame < 19) {
+					substate.unshift(SSfameFromInfl);
+					state.unshift(st.Subroutine);
+					setInflFameClick(activePlayer);
+					clickProc = 0;
+					return;
+				}
+			}
+            if (gFame == 19) gotCelebrity(activePlayer);
+			artist[artistNum].fame = gFame;
+			endTurn();
+			break;
+			
+	}
+}
+
+function gotCelebrity(pl) {
+	moneyMsg(" gained for pushing artist to Celebrity", pl, 5);
+	totalCelebrity++;
+	if ((totalCelebrity==2) && (numPlayers > 1)) {
+		addEOG(2);
+	}
+}
+
+function actionIntlMarket(loc) {
+	clearAllowableClicks();
+	switch (substate[0]) {
+		case 0: // market location selected
+			if (loc == clickSection.cancel[0]) {
+				endTurn();
+				return;
+			} else {
+				gOldInfluence = peeps[activePlayer].infl.locNum;
+				peeps[activePlayer].infl.setLoc(Math.min(35, gOldInfluence + 3 - imColClicked), locs.influence);
+				gAsstToUse = fromDesk(activePlayer);
+				if (gAsstToUse == -1) {
+					substate[0] = 1;
+					setAsstClicks(activePlayer);
+					substate.unshift(SSasstToUse);
+					state.unshift(st.Subroutine);
+					return;
+				}
+			}
+				// note: if gAsstToUse is a desk asst we drop directly to substate 1
+		case 1:	// gAsstToUse is set
+			if (imRowClicked < 4) {
+				// remember repTile
+				gRepTile = intlMkt[imRowClicked][imColClicked];
+				// move asst to IntlMkt
+				var tmpobjA = peeps[activePlayer].asst[gAsstToUse];
+				if (tmpobjA.locType < locs.home) {
+					actSpots[tmpobjA.locType][tmpobjA.locNum] = 0;
+				}
+				tmpobjA.setLoc(imRowClicked*3+imColClicked, locs.intlMkt);
+				// choose rep tile placement loc
+				substate[0] = 5;
+				setRepTileClicks(activePlayer);
+				substate.unshift(SSrepTile);
+				state.unshift(st.Subroutine);
+			} else {
+				// auction
+				var tmpP = [0,0,0,0,1,3,6];
+				price = tmpP[imRowClicked];
+				setInflDiscClick(activePlayer);
+				substate[0] = 2;
+			}
+			break;
+		case 2: // using influence as discount to auction?
+			if (loc == clickSection.inflTrack[0]) {
+				// clicked for discount, do that then re-run
+				price--;
+				peeps[activePlayer].inflForDisc();
+				setInflDiscClick(activePlayer);
+			} else {
+				// done discounting
+				if (peeps[activePlayer].money >= price) {
+					// if have asst. at desk, move to IM
+					var tmpobjA = peeps[activePlayer].asst[gAsstToUse];
+					if (tmpobjA.locType < locs.home) {
+						actSpots[tmpobjA.locType][tmpobjA.locNum] = 0;
+					}
+					tmpobjA.setLoc(imRowClicked*3+imColClicked, locs.intlMkt);
+					moneyMsg(" for auction spot", activePlayer, -price);
+					// get space bonus
+					if ((imRowClicked > 4) && (imColClicked > 0)) {
+						if ((imRowClicked + imColClicked == 7)) {
+							// gain money
+							peeps[activePlayer].moneyBonus();
+						} else {
+							// gain influence
+							peeps[activePlayer].influenceBonus();
+						}
+					} else if (imRowClicked + imColClicked == 5) {
+						gAsstToGet = peeps[activePlayer].nextHire();
+						peeps[activePlayer].asst[gAsstToGet].goHome();
+						
+						// gain asst. already done but bonus (if any) is done here
+						switch (gAsstToGet) {
+							case 0: // gain money
+								peeps[activePlayer].moneyBonus();
+								break;
+							case 2: // gain any color ticket
+								gTix2Get = 1;
+								setGetTixClicks();
+								substate[0] = 3;
+								substate.unshift(SSgetTix);
+								state.unshift(st.Subroutine);
+								break;
+							case 4: // gain influence
+								peeps[activePlayer].influenceBonus();
+								break;
+							case 5: // gain pink ticket
+							case 6: // gain brown ticket
+								gTixSelected = [gAsstToGet==5, gAsstToGet==6, 0];
+								tix2player(activePlayer);
+								break;
+						}
+					} else if (imRowClicked == 4) {
+						gTix2Get = 1 + (imColClicked==2);
+						setGetTixClicks();
+						substate[0] = 3;
+						substate.unshift(SSgetTix);
+						state.unshift(st.Subroutine);
+					} else { // row 6, col 0
+						// select plaza visitor (if none, select from bag)
+						gFromPlaza = plazaVisitors.setClick(Vall);
+						if (gFromPlaza || bagVisitors.setClick(Vall)) {
+							// visitors from plaza or bag 
+							substate[0] = 4;
+							substate.unshift(SSvisitor);
+							state.unshift(st.Subroutine);
+						} // else no visitors in plaza or bag!
+					}
+					if ((state[0] != st.Subroutine) && (substate[0] == 2)) {
+						// if substate has not changed, we are not waiting for further choices (e.g. tix colors))
+						endTurn();
+					}						
+				} else {
+					// not enough money
+					peeps[activePlayer].infl.setLoc(gOldInfluence, locs.influence);
+					endTurn();
+				}
+			}
+			break;
+		case 3: // got tix selections
+		case 4: // got visitor selection
+			endTurn();
+			break;
+		case 5: // placed repTile
+			// send lobby visitor to plaza
+			var tmpV = peeps[activePlayer].lobby.num;
+			var totV = tmpV[0] + tmpV[1] + tmpV[2];
+			var maxV = Math.max(...tmpV);
+			if (!totV) {
+				// no visitors in lobby, do nothing
+			} else if (totV == maxV){
+				// all visitors are same color, return 1
+				for (var c=0; c<3; c++) {
+					if (tmpV[c]) {
+						// return this color
+						plazaVisitors.move(c, peeps[activePlayer].lobby);
+						break;
+					}
+				}
+			} else {
+				// choose a visitor to return
+				peeps[activePlayer].lobby.setLeaveClick();
+				substate[0] = 6;
+				return;
+			}
+			endTurn();
+			break;
+		case 6: // got lobby visitor selection
+			var tmpV = loc - clickSection.visitor[0];
+			plazaVisitors.move(tmpV, peeps[activePlayer].lobby);
+			endTurn();
+			break;			
+	}
+	
+}
+
+function setAllowableImClicks(pl) {
+	var somethingSet = 0;
+	setAllowableClicks(1, clickSection.intlMkt);
+	setAllowableClicks(1, clickSection.cancel);
+	var aType2Im = [0, 3, 2, 1]; 
+	var availAsst; 
+	// for all, user has correct visitors and 1+ avail. asst.
+	// for top, space is tile, acquired right artType (optional space for new repTile)
+	// for bottom, space is empty
+	var colVisitors = [0,0,0];
+	colVisitors[0] = Math.max(...peeps[pl].lobby.num);	// at least 1 visitor, col 1 ok
+	colVisitors[1] = (numPlayers > 2) && peeps[pl].lobby.num[0] && peeps[pl].lobby.num[1]; // have pink and brown
+	colVisitors[2] = peeps[pl].lobby.num[2] && (peeps[pl].lobby.num[0] || peeps[pl].lobby.num[1]); // white plus pink OR brown
+	
+	availAsst = (fromDesk(pl) != -2);
+	
+	for (var r=0; r<4; r++) {
+		if (availAsst && peeps[pl].everHad[aType2Im[r]]) {
+			for (var c=0; c<3; c++) {
+				allowableImClicks[r][c] = 0;
+				if (colVisitors[c] &&	// col is usable
+					(intlMkt[r][c]) && 	// spot has something on it
+					(intlMkt[r][c].pType != pTypes.asst)) { // spot has tile
+					allowableImClicks[r][c] = 1;
+					somethingSet = 1;
+				}
+			}
+		} else {
+			allowableImClicks[r] = [0,0,0];
+		}
+	}
+	for (var r=4; r<7; r++) {
+		if (availAsst) {
+			for (var c=0; c<3; c++) {
+				allowableImClicks[r][c] = 0;
+				if (colVisitors[c] &&	// col is usable
+					!intlMkt[r][c]) {	// nothing on auction spot
+					allowableImClicks[r][c] = 1;
+					somethingSet = 1;
+				}
+			}
+		} else {
+			allowableImClicks[r] = [0,0,0];
+		}
+	}
+	return somethingSet;
+}
+
+function unSub() {
+	state.shift();
+	substate.shift();
+}
+
+var SSgetTix = 0;
+var SSrepTile = 1;
+var SSfame = 2;
+var SSfameFromInfl = 3;
+var SSvisitor = 4;
+var SSnewAsst = 5;
+var SSasstToUse = 6;
+var SSuseTixColor = 7;
+var SSuseTixVisitor = 8;
+var SScontractBonus = 9;
+var SScontractAssignAsst = 10;
+var SSpickContract = 11;
+var SSplaceContract = 12;
+var SSlacerdaTix = 13;
+
+function doSubs(loc) {
+    clearAllowableClicks();
+    switch (substate[0]) {
+        case SSgetTix:
+            var tmp = loc - clickSection.tix[0];
+            gTixSelected[tmp] = 1;
+            gTix2Get--;
+            if (gTix2Get) {
+                setGetTixClicks();
+                clickProc = 0;
+                return;
+            }
+            // all tix selected, continue
+            tix2player(activePlayer);
+            unSub();
+            break;
+        case SSlacerdaTix:
+            var tmp = loc - clickSection.tix[0];
+            gTixSelected = [0, 0, 0];
+            gTix2Get = 0;
+            // all tix selected, continue
+            tixRemain[tmp].lacerda();
+            unSub();
+            //~ setupActionClick(peeps[activePlayer].pawn.locNum);
+            //~ clickProc = 0;
+            break;
+        case SSfame:
+            artistNum = loc - clickSection.artists[0];
+            gFame = artist[artistNum].fame;
+            if (gFame < 19) {
+                gFame += peeps[activePlayer].gallery.num[TCOLwhite];
+                gFame = Math.min(19, gFame);
+                if (gFame < 19) {
+                    substate[0] = SSfameFromInfl;
+                    setInflFameClick(activePlayer);
+                    clickProc = 0;
+                    return;
+                }
+                if (gFame == 19) gotCelebrity(activePlayer);
+            }
+            artist[artistNum].fame = gFame;
+            unSub();
+            break;
+        case SSfameFromInfl:
+            if (loc == clickSection.inflTrack[0]) {
+                // clicked to use fame
+                gFame++;
+                peeps[activePlayer].inflForFameOrKo();
+                setInflFameClick(activePlayer);
+                clickProc = 0;
+                return;
+            } else {
+                // done adding fame
+                if (gFame == 19) gotCelebrity(activePlayer);
+                artist[artistNum].fame = gFame;
+                gFame = 0;
+            }
+            unSub();
+            break;
+        case SSuseTixColor:
+            if (loc == clickSection.cancel[0]) {
+                unSub();
+                finishEA = 1;
+                break;
+            } else {
+                gTicketColorToUse = loc - clickSection.tix[0];
+                if (plazaVisitors.num[gTicketColorToUse]) {
+                    // plaza has visitor of correct color
+                    allowableClicks[clickSection.lobbies[1]] = 1;
+                }
+                for (var p=0; p<peeps.length; p++) {
+                    if (peeps[p].lobby.num[gTicketColorToUse]) {
+                        // player lobby has visitor of correct color
+                        if ((p != activePlayer) || 
+                            (gTicketColorToUse != TCOLwhite) || 
+                            (peeps[activePlayer].maxCollectors  > peeps[activePlayer].gallery.num[TCOLwhite])) {
+                            allowableClicks[clickSection.lobbies[0] + p] = 1;
+                        }
+                    }
+                }
+                setAllowableClicks(1, clickSection.cancel);
+                substate[0] = SSuseTixVisitor;
+                clickProc = 0;
+            }
+            break;
+        case SSuseTixVisitor:
+            if (loc == clickSection.cancel[0]) {
+                unSub();
+                finishEA = 1;
+                break;
+            } else {
+                eaAvailable = 0;
+                // move visitor toward player gallery
+                var tmpL = loc - clickSection.lobbies[0];
+                if (tmpL == 4) {	// lobby #4 is actually plaza, move to active lobby
+                    peeps[activePlayer].lobby.move(gTicketColorToUse, plazaVisitors);
+                } else if (tmpL == activePlayer) { // active lobby, move to active gallery
+                    peeps[activePlayer].gallery.move(gTicketColorToUse, peeps[activePlayer].lobby);
+                } else { // someone else's lobby, move to plaza
+                    plazaVisitors.move(gTicketColorToUse, peeps[tmpL].lobby);
+                }
+                // remove ticket from player
+                peeps[activePlayer].tix[gTicketColorToUse].playerUse();
+                setUseTixClicks(activePlayer);
+                substate[0] = SSuseTixColor;
+                clickProc = 0;
+            }
+            break;
+        case SSpickContract:
+            clickProc = 0;
+            if (loc == clickSection.contracts[0]) {
+                // deal new cards
+                dealMore();
+                setAllowableClicks(1, clickSection.contracts);
+                allowableClicks[loc] = 0; // do not allow another deal
+            } else {
+                substate[0] = SSplaceContract;
+                gContractNum = loc - clickSection.contracts[0] - 1;
+                // only highlight empty/complete contracts
+                setContractSpaces();
+            }
+            if (finishEA) eaAvailable = 0;
+            break;
+        case SSplaceContract:
+            // picked a location for the contract
+            // gContractNum = pile the contract is coming from
+            var spot = loc - clickSection.playerContracts[0];
+            if (!peeps[activePlayer].contract[spot]) {
+                // spot empty
+                // move contract
+                var tmp = contractDisplay[gContractNum].shift();
+                tmp.getCard(activePlayer, spot);
+                // if contract pile empty, deal new one
+                if (contractDisplay[gContractNum].length == 0) {
+                    contractPile[0].dealCard(gContractNum);
+                }
+                if (spot == 2) {
+                    // need to select a ticket color
+                    gTix2Get = 1;
+                    setGetTixClicks();
+                    substate[0] = SSgetTix;
+                    clickProc = 0;
+                    return;
+                } else {
+                    // get brown/pink ticket
+                    gTixSelected = [spot==1, spot==0, 0];
+                    tix2player(activePlayer);
+                }
+                    
+            } else {
+                // spot has a contract
+                // is asst on contract?
+                for (var a=0; a<10; a++) {
+                    if ((peeps[activePlayer].asst[a].locType == locs.contr) && 
+                        (peeps[activePlayer].asst[a].locNum == spot)) {
+                        // found asst. on the selected contract
+                        peeps[activePlayer].asst[a].goHome();
+                        break;
+                    }
+                }
+                // discard old contract	
+                peeps[activePlayer].contract[spot].discard();
+                // move new contract
+                var tmp = contractDisplay[gContractNum].shift();
+                tmp.getCard(activePlayer, spot);
+                // if contract pile empty, deal new one
+                // if no contracts in pile, reshuffle & deal
+                if (contractPile.length == 0) {
+                    dealMore();
+                } else if (contractDisplay[gContractNum].length == 0) {
+                    contractPile[0].dealCard(gContractNum);
+                }
+            }
+            unSub();
+            break;
+        case SScontractBonus:
+            if (loc == clickSection.cancel[0]) {
+                msgLog("-Action cancelled");
+                unSub();
+                finishEA = 1;
+                break;
+            } else {
+                eaAvailable = 0;
+                gContractToUse = loc - clickSection.playerContracts[0];
+                gAsstToUse = fromDesk(activePlayer);
+                if (gAsstToUse == -1) {
+                    substate[0] = SScontractAssignAsst;
+                    //~ substate.unshift(SScontractAssignAsst);
+                    //~ state.unshift(st.Subroutine);
+                    setAsstClicks(activePlayer);
+                    clickProc = 0;
+                    return;
+                } // else fall directly to assign
+            }
+        case SScontractAssignAsst:
+            if (substate[0] == SScontractAssignAsst) {
+                var tmpL = loc - clickSection.action[0];
+                // is asst in ko position? or action pos?
+                if (actSpots[locs.ko][tmpL] && (actSpots[locs.ko][tmpL].plNum == activePlayer)) {
+                    gAsstToUse = actSpots[locs.ko][tmpL].pieceNum;
+                    actSpots[locs.ko][tmpL] = 0;
+                } else {
+                    // assume from action spot
+                    gAsstToUse = actSpots[locs.action][tmpL].pieceNum;
+                    actSpots[locs.action][tmpL] = 0;
+                }
+            }
+            // move asst
+            var tmpobjA = peeps[activePlayer].asst[gAsstToUse];
+            if (tmpobjA.locType < locs.home) {
+                actSpots[tmpobjA.locType][tmpobjA.locNum] = 0;
+            }
+            tmpobjA.setLoc(gContractToUse, locs.contr);
+            peeps[activePlayer].contract[gContractToUse].bonusAvailable = 0;
+            finishEA = 1;
+            // get contract bonus!
+            if (peeps[activePlayer].contract[gContractToUse].faceUp) {
+                switch (peeps[activePlayer].contract[gContractToUse].bonusType) {
+                    case 0:	// get contract
+                        setAllowableClicks(1, clickSection.contracts);
+                        substate[0] = SSpickContract;
+                        clickProc = 0;
+                        return;
+                    case 1:	// get asst
+                        gAsstToGet = peeps[activePlayer].nextHire();
+                        peeps[activePlayer].asst[gAsstToGet].goHome();
+                        
+                        // gain asst. already done but bonus (if any) is done here
+                        switch (gAsstToGet) {
+                            case 0: // gain money
+                                peeps[activePlayer].moneyBonus();
+                                break;
+                            case 2: // gain any color ticket
+                                gTix2Get = 1;
+                                setGetTixClicks();
+                                substate[0] = SSgetTix;
+                                clickProc = 0;
+                                return;
+                            case 4: // gain influence
+                                peeps[activePlayer].influenceBonus();
+                                break;
+                            case 5: // gain pink ticket
+                            case 6: // gain brown ticket
+                                gTixSelected = [gAsstToGet==5, gAsstToGet==6, 0];
+                                tix2player(activePlayer);
+                                break;
+                            case -1: // no unemployed asst.
+                        }
+                        unSub();
+
+                        break;
+                    case 2:	// get pink/brown visitor from plaza
+                        gFromPlaza = plazaVisitors.setClick(VpinkBrown);
+                        if (gFromPlaza || bagVisitors.setClick(VpinkBrown)) {
+                            // visitors from plaza or bag 
+                            substate[0] = SSvisitor;
+                            clickProc = 0;
+                            return;
+                        } // else no visitors in plaza or bag!
+                        unSub();
+                        break;
+                    case 3:	// get any visitor from bag
+                        gFromPlaza = 0;
+                        bagVisitors.setClick(Vall);
+                        substate[0] = SSvisitor;
+                        clickProc = 0;
+                        return;
+                    case 4:	// gain infl
+                        peeps[activePlayer].influenceBonus();
+                        unSub();
+                        break;
+                    case 5:	// gain money
+                        peeps[activePlayer].moneyBonus();
+                        unSub();
+                        break;
+                }
+            } else { // must be face down
+                if (peeps[activePlayer].contract[gContractToUse].moneyUp) {
+                    peeps[activePlayer].moneyBonus();
+                } else {
+                    peeps[activePlayer].influenceBonus();
+                }
+                unSub();
+            }
+            break;
+        case SSvisitor:
+            var tmpV = loc - clickSection.visitor[0];
+            if (gFromPlaza) {
+                // get visitor from plaza
+                peeps[activePlayer].gallery.move(tmpV, plazaVisitors);
+            } else {
+                // get visitor from bag
+                peeps[activePlayer].gallery.move(tmpV, bagVisitors);
+                if (!Math.max(...bagVisitors.num) && (numPlayers > 1)) {
+                    addEOG(1);
+                }
+            }
+            unSub();
+            break;
+        case SSasstToUse:
+            var tmpL = loc - clickSection.action[0];
+            // is asst in ko position? or action pos?
+            if (actSpots[locs.ko][tmpL] && (actSpots[locs.ko][tmpL].plNum == activePlayer)) {
+                gAsstToUse = actSpots[locs.ko][tmpL].pieceNum;
+            } else {
+                // assume from action spot
+                gAsstToUse = actSpots[locs.action][tmpL].pieceNum;
+            }
+            unSub();
+            break;
+        case SSrepTile:
+            // placing reptile
+            var tmpL = loc - clickSection.repTiles[0];
+            gRepTile.setLoc(tmpL, RLOCplayer);
+            switch (tmpL) {
+                case 0: // gain influence
+                    peeps[activePlayer].influenceBonus();
+                    unSub();
+                    break;
+                case 1: // gain money
+                    peeps[activePlayer].moneyBonus();
+                    unSub();
+                    break;
+                case 2: // gain fame
+                    substate[0] = SSfame;
+                    clearAllowableClicks();
+                    setArtistFameClick();
+                    clickProc = 0;
+                    return;
+                case 3: // gain visitor from plaza
+                    gFromPlaza = plazaVisitors.setClick(Vall);
+                    if (gFromPlaza || bagVisitors.setClick(Vall)) {
+                        // visitors from plaza or bag 
+                        substate[0] = SSvisitor;
+                        clickProc = 0;
+                        return;
+                    } // else no visitors in plaza or bag!
+                    unSub();
+                    break;
+                case 4: // gain 2 tix
+                    gTix2Get = 2;
+                    setGetTixClicks();
+                    substate[0] = SSgetTix;
+                    clickProc = 0;
+                    return;
+                case 5: // gain asst.
+                    gAsstToGet = peeps[activePlayer].nextHire();
+                    peeps[activePlayer].asst[gAsstToGet].goHome();
+                    
+                    // gain asst. already done but bonus (if any) is done here
+                    switch (gAsstToGet) {
+                        case 0: // gain money
+                            peeps[activePlayer].moneyBonus();
+                            break;
+                        case 2: // gain any color ticket
+                            gTix2Get = 1;
+                            setGetTixClicks();
+                            substate[0] = SSgetTix;
+                            clickProc = 0;
+                            return;
+                        case 4: // gain influence
+                            peeps[activePlayer].influenceBonus();
+                            break;
+                        case 5: // gain pink ticket
+                        case 6: // gain brown ticket
+                            gTixSelected = [gAsstToGet==5, gAsstToGet==6, 0];
+                            tix2player(activePlayer);
+                            break;
+                        case -1: // no unemployed asst.
+                    }
+                    unSub();
+
+                    break;
+            }
+            break;
+    }
+
+}
+	
+function mouseClick(evt) {
+	if (clickProc) {
+		return;
+	}
+	clickProc = 1;
+    var rect = canvas.getBoundingClientRect();
+	var x = evt.clientX - rect.left;
+	var y = evt.clientY - rect.top;
+	var loc = -1; 
+	
+	for (var l=0; l<clickLocations.length; l++) {
+		if ((x>clickLocations[l].x) && (x<clickLocations[l].xx) &&
+			(y>clickLocations[l].y) && (y<clickLocations[l].yy) &&
+			allowableClicks[l]) {
+			loc = l;
+			if (loc == clickSection.intlMkt[0]) {
+				// determine im location clicked
+				imColClicked = Math.floor((x - clickLocations[l].x) / 47);
+				imRowClicked = Math.floor((y - clickLocations[l].y - 5*(y>396)) / 41);
+				if (!allowableClicks[loc] || !allowableImClicks[imRowClicked][imColClicked]) {
+					clickProc = 0;
+					return;
+				}
+			}
+				
+		}
+	}
+
+	if (loc < 0) {
+		clickProc = 0;
+		return;
+	}
+	redraw = 1;
+
+	// handle common subroutines
+    if (state[0] == st.Subroutine) {
+        doSubs(loc);
+    }
+	
+	if (clickProc) {
+		if (finishEA) {
+			finishEA = 0;
+			if (state[0]==st.PickAction) {
+				// highlight pick actions
+				startTurn(eaAvailable);
+			} else {
+				// must've been a KO action or EAonly, return any KO pawn/asst
+				endTurn();
+			}
+		} else {
+			if (state[0] == st.PickAction) {
+				if (loc == clickSection.cancel[0]) {
+					eaAvailable = 0;
+					endTurn();
+				} else if (loc <= clickSection.action[1]) {
+					pickAction(loc);
+				} else {
+					// EA action
+					startEA(loc);
+				}
+			} else if (state[0] == st.KoPickAction) {
+				if (loc == clickSection.cancel[0]) {
+					eaAvailable = 0;
+					endTurn();
+				} else if (loc <= clickSection.action[1]) {
+					peeps[activePlayer].inflForFameOrKo();
+					setupActionClick(loc);
+				} else {
+					// EA action
+					startEA(loc);
+				}
+			} else if (state[0] == st.DoAction) {
+				// We chose a location, now decide the action to do there
+					
+				switch (gActionSection) {
+					case 0:	// Sales
+						actionSalesOffice(loc);
+						break;
+					case 1:	//Artists
+						actionArtistColony(loc);			
+						break;
+					case 2: // media center
+						actionMediaCenter(loc);
+						break;
+					case 3: // Internation Market
+						actionIntlMarket(loc);
+						break;
+				}
+			} else if (state[0] == st.EAonly) {
+				if (loc == clickSection.cancel[0]) {
+					eaAvailable = 0;
+					endTurn();
+				} else {
+					// Exec Action
+					startEA(loc);
+				}
+			} else if (state[0] == st.LacerdaKo) {
+                endTurn();
+			} else if (state[0] == st.Start) {
+					state[0] = st.PickAction;
+					peeps[activePlayer].pawn.setLoc(loc, locs.action);
+					repPile[loc].setLoc(loc, RLOCdisplay);
+                    startTurn(1);
+							
+
+			}
+		}
+	}
+	clickProc = 0;
+	drawBoard();
+
+}
+
+function startEA(loc) {
+	clearAllowableClicks();
+	if (loc == clickSection.ea[0]) {
+		// use tix
+		// pick a ticket to use
+        msgLog("Player " + activePlayer + " uses tickets via Exec Action");
+		setUseTixClicks(activePlayer);
+		substate.unshift(SSuseTixColor);
+		state.unshift(st.Subroutine);
+	} else {
+		// get contract bonus
+        msgLog("Player " + activePlayer + " uses contract bonus via Exec Action");
+		setUseBonusClicks(activePlayer);
+		substate.unshift(SScontractBonus);
+		state.unshift(st.Subroutine);
+	}
+}
+
+function setActionClicks() {
+	var actionable = [0,0,0,0];
+	actionable[0] = setSalesClicks();
+	actionable[1] = setArtColonyClicks();
+    var p = setPromotableClicks(activePlayer);
+    var u = setUnemployedClicks(activePlayer);
+	actionable[2] = p || u;
+	actionable[3] = setAllowableImClicks(activePlayer);
+	clearAllowableClicks();
+	setAllowableClicks(1, clickSection.action);
+	if (peeps[activePlayer].pawn.locType == locs.action) {
+		actionable[peeps[activePlayer].pawn.locNum] = 0;
+	}
+	var somethingSet = 0;
+	for (var a=0; a<4; a++) {
+		if (!actionable[a]) {
+			allowableClicks[a] = 0;
+		} else {
+			somethingSet = 1;
+		}
+	}
+	return somethingSet;
+	
+}
+
+function startTurn(ea) {
+	if (finalRound < 3) {
+		state[0] = st.PickAction;
+		activePlayer = turnPlayer;
+		var somethingSet = setActionClicks();
+		eaAvailable = ea;
+		if (eaAvailable && !setEaClicks(activePlayer) && !somethingSet) {
+			// Nothing to do, allow move to any Action spot
+            for (var a=0; a<4; a++) {
+                allowableClicks[a] = 1;
+            }
+		}
+	} else {
+		clearAllowableClicks();
+		msgLog("Game Over!");
+		drawBoard();
+	}
+}
+
+function endTurn() {
+	substate[0] = 0;
+	clearAllowableClicks();
+	if (actSpots[locs.ko][peeps[turnPlayer].pawn.locNum] && (actSpots[locs.ko][peeps[turnPlayer].pawn.locNum].plNum == turnPlayer)) {
+		// send ko spot home since it is same as player
+		actSpots[locs.ko][peeps[turnPlayer].pawn.locNum].goHome();
+		actSpots[locs.ko][peeps[turnPlayer].pawn.locNum] = 0;
+	}
+	if (activePlayer != turnPlayer) {
+		// this was a KO action
+		// is player still in KO space?
+		if (actSpots[locs.ko][peeps[turnPlayer].pawn.locNum]) {
+			actSpots[locs.ko][peeps[turnPlayer].pawn.locNum].goHome();
+			actSpots[locs.ko][peeps[turnPlayer].pawn.locNum] = 0;
+		}
+		turnPlayer = nextPlayer(turnPlayer);
+		startTurn(1);
+	} else if (eaAvailable) {
+		setEaClicks(activePlayer);
+		setAllowableClicks(3, clickSection.cancel);
+		state[0] = st.EAonly;
+	} else {
+		if (actSpots[locs.ko][peeps[turnPlayer].pawn.locNum]) { // something in ko spot
+            var tmploc = peeps[turnPlayer].pawn.locNum;
+            if (actSpots[locs.ko][tmploc].plNum == lacerdaPlNum) {
+                // kicking out lacerda
+                if (actSpots[locs.ko][tmploc].pType == pTypes.pawn) {
+                    msgLog("Lacerda Kicked-Out from " + locText[tmploc]);
+                } else {
+                    msgLog("Lacerda asst. Kicked-Out from " + locText[tmploc]);
+                }
+                actSpots[locs.ko][tmploc].goHome();
+                actSpots[locs.ko][tmploc] = 0;
+                if (tmploc == 3) {
+                    //  place lacerda asst in IM
+                    lacerdaIM();
+                }
+                // discard ticket from biggest pile
+                var bigPile = tixRemain[TCOLpink].numTix;
+                gTixSelected = [0, 1, 1];
+                gTix2Get = 1;
+                msgLog("Discard a ticket due to Lacerda being kicked");
+                for (var c=1; c<3; c++) {
+                    if (tixRemain[c].numTix == bigPile) {
+                        gTixSelected[c] = 0;
+                    } else if (tixRemain[c].numTix > bigPile) {
+                        bigPile = tixRemain[c].numTix;
+                        gTixSelected = [1, 1, 1];
+                        gTixSelected[c] = 0;
+                    }
+                }
+                state[0] = st.LacerdaKo;
+                state.unshift(st.Subroutine);
+                substate.unshift(SSlacerdaTix);
+                setGetTixClicks();
+            } else if (actSpots[locs.ko][peeps[turnPlayer].pawn.locNum].plNum != turnPlayer) {
+				// do KO action
+				state[0] = st.KoPickAction;
+				activePlayer = actSpots[locs.ko][peeps[turnPlayer].pawn.locNum].plNum;
+				if (peeps[activePlayer].infl.locNum) {
+					var tmpA;
+					switch (peeps[turnPlayer].pawn.locNum) {
+						case 0: tmpA = setSalesClicks(); 
+								break;
+						case 1: tmpA = setArtColonyClicks();
+								break;
+						case 2: tmpA = setPromotableClicks(activePlayer) || setUnemployedClicks(activePlayer);
+								break;
+						case 3: tmpA = setAllowableImClicks(activePlayer);
+								break;
+					}
+					clearAllowableClicks();
+					allowableClicks[clickSection.action[0] + peeps[turnPlayer].pawn.locNum] = tmpA;
+				}
+				setEaClicks(activePlayer);
+				setAllowableClicks(3, clickSection.cancel);
+			} else {
+				actSpots[locs.ko][peeps[turnPlayer].pawn.locNum].goHome();
+				turnPlayer = nextPlayer(turnPlayer);
+				startTurn(1);
+			}
+		} else  {
+			turnPlayer = nextPlayer(turnPlayer);
+			if ((finalRound < 2) && (player[turnPlayer].enabled == 2)) {
+				// if lacerda's turn, do it
+				var tmpL;
+                if (lacerdaLastLoc == -1) {
+					// place lacerda opposite player
+                    tmpL = (peeps[nextPlayer(turnPlayer)].pawn.locNum + 2) % 4;
+					//~ lacerdaLastLoc = tmpL;
+                    msgLog("Lacerda starts in " + locText[tmpL]);
+                    //~ peeps[turnPlayer].pawn.setLoc(tmpL, locs.action);
+                    //~ turnPlayer = nextPlayer(turnPlayer);
+                    //~ startTurn(1);
+				} else {
+					// move lacerda clockwise
+					tmpL = (lacerdaLastLoc + 1) % 4;
+                    msgLog("Lacerda moves to " + locText[tmpL]);
+					if (tmpL == 3) {
+						lacerdaIM();
+					}
+                }
+					//  handle lacerda KO'ing player pawn, asst or own asst.
+					if (actSpots[locs.action][tmpL]) { // someone in space
+						var w = whatPlayer(actSpots[locs.action][tmpL]);
+						if (actSpots[locs.action][tmpL].plNum == turnPlayer) {
+							// lacerda KO'ing lacerda asst
+							actSpots[locs.action][tmpL].goHome();
+						} else {
+							actSpots[locs.action][tmpL].setLoc(0, locs.ko);
+							state[0] = st.KoPickAction;
+							activePlayer = actSpots[locs.action][tmpL].plNum;
+                            if (peeps[activePlayer].infl.locNum) {
+                                var tmpA;
+                                switch (tmpL) {
+                                    case 0: tmpA = setSalesClicks(); 
+                                            break;
+                                    case 1: tmpA = setArtColonyClicks();
+                                            break;
+                                    case 2: tmpA = setPromotableClicks(activePlayer) || setUnemployedClicks(activePlayer);
+                                            break;
+                                    case 3: tmpA = setAllowableImClicks(activePlayer);
+                                            break;
+                                }
+                                clearAllowableClicks();
+                                allowableClicks[clickSection.action[0] + tmpL] = tmpA;
+                            }
+							setEaClicks(activePlayer);
+							setAllowableClicks(3, clickSection.cancel);
+						}
+					}
+					var tmpA = fromDesk(turnPlayer);
+					if (peeps[turnPlayer].pawn.locType != locs.action) {
+						tmpA = -5;
+					}
+					peeps[turnPlayer].pawn.setLoc(tmpL, locs.action); // move lacerda's pawn
+					// leave asst. behind
+					if (lacerdaLastLoc >= 0) {
+                        if (tmpA >= 0)  {
+                            //  move asst to action
+                            peeps[turnPlayer].asst[tmpA].setLoc(lacerdaLastLoc, locs.action);
+                        } else {
+                            actSpots[locs.action][lacerdaLastLoc] = 0;
+                        }
+                    }
+					lacerdaLastLoc = tmpL;
+					if (state[0] != st.KoPickAction) { 
+						turnPlayer = nextPlayer(turnPlayer);
+						startTurn(1);
+					}
+				
+			} else {
+				startTurn(1);
+			}
+		}
+	}
+}
+
+function artValue(objArtist) {
+	switch (objArtist.fame) {
+		case 1: return 0;
+		case 2: 
+		case 3: 
+		case 4: return 5;
+		case 5: if (objArtist.initFame >= 4) return 5;
+		case 6:
+		case 7: return 8;
+		case 8: if (objArtist.initFame >= 4) return 8;
+		case 9:
+		case 10: return 11;
+		case 11: if (objArtist.initFame >= 4) return 11;
+		case 12:
+		case 13:
+		case 14: return 14;
+		case 15:
+		case 16:
+		case 17:
+		case 18: return 17;
+		case 19: return 20;
+	}
+}
+
+function tix2player(pl) {
+	for (var c=0; c<3; c++) {
+		if (gTixSelected[c]) {
+			tixRemain[c].pile2player(pl);
+            msgLog("Player " + pl + " gets " + tixColors[c] + " ticket.");
+		}
+	}
+	gTixSelected = [0,0,0];
+}
+
+function visitors2art(artType) {
+	if (artPiles[artType].length) {
+		var tmpV = artTixNum[artPiles[artType][0].tix];
+		for (var v=0; v<tmpV; v++) {
+			artVisitors[artType].grabBag();
+		}
+	}
+}
+
+function drawAllowableClicks() {
+	ctx.lineWidth=4;
+	ctx.strokeStyle = "red";
+    var somethingSet = 0;
+
+	for (var c=0; c<allowableClicks.length; c++) {
+		if (allowableClicks[c]) {
+			var cl = clickLocations[c];
+			if (c == clickSection.intlMkt[0]) {
+				for (var imrow=0; imrow < 7; imrow++) {
+					for (var imcol=0; imcol < 3; imcol++) {
+						if (allowableImClicks[imrow][imcol]) {
+							var xOff = imcol * 47;
+							var yOff = imrow * 41 + 5*(imrow > 3);
+							ctx.strokeRect(cl.x + xOff, cl.y + yOff,  40, 41);
+                            somethingSet=1;
+						}
+					}
+				}
+			} else {
+				ctx.strokeRect(cl.x, cl.y, cl.xx-cl.x, cl.yy-cl.y);
+                somethingSet=1;
+			}
+		}
+	}
+    return somethingSet;
+}
+
+function isIn(needle, start, end) {
+	if ((needle >= start) && (needle <= end)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+function setArtColonyClicks() {
+	// enable artists
+	var somethingSet = 0;
+	// artists if have enough money+infl to pay (and space) (and sig token) (and there is art)
+	for (var a=0; a<8; a++) {
+		if (artist[a].tokens && artPiles[a % 4].length && peeps[activePlayer].hasArtSpace() && peeps[activePlayer].canAfford(a)) {
+			allowableClicks[a + clickSection.artists[0]] = 1;
+			somethingSet = 1;
+		}
+	}
+	// artists allowed to be discovered
+	if (peeps[activePlayer].comm == -1) {
+		for (var a=0; a<8; a++) {
+			if (!artist[a].disc) {
+				allowableClicks[a + clickSection.artists[0]] = 1;
+				somethingSet = 1;
+			}
+		}
+	}
+	return somethingSet;
+	
+}
+
+function setSalesClicks() {
+	// enable contracts and any sellable art
+	var somethingSet = 0;
+	var contractSpace = setContractSpaces();
+	setAllowableClicks(0, clickSection.playerContracts);
+	if (contractSpace) {
+		setAllowableClicks(1, clickSection.contracts);
+		somethingSet = 1;
+	}
+	// only highlight art and contracts that can be sold
+	var tmpT = [0,0,0,0];
+	for (var c=0; c<3; c++) {
+		var tmpC = peeps[activePlayer].contract[c];
+		if (tmpC) {
+			tmpT[tmpC.artType] = 1; // find all different types of contracts we have
+		}
+	}
+	// highlight art for contracts we have
+	for (var a=0; a<peeps[activePlayer].displayArt.length; a++) {
+		if (tmpT[peeps[activePlayer].displayArt[a].type]) {
+			// highlight this contract
+			allowableClicks[clickSection.display[0]+a] = 1;
+			somethingSet = 1;
+		}
+	}
+	return somethingSet;
+}
+
+function setRepTileClicks(pl) {
+	var tmp = clickSection.repTiles[0];
+	for (var t=0; t<6; t++) {
+		if (!peeps[pl].repTiles[t]) {
+			// this repTile spot is open
+			allowableClicks[tmp + t] = 1;
+		}
+	}
+}
+
+function setInflDiscClick(pl) {
+	if (peeps[pl].infl.locNum && price) {
+		var tmp = inflNextMark[peeps[pl].infl.locNum];
+		tmp = Math.floor((1114/35) * tmp) + 6;
+		clickLocations[clickSection.inflTrack[0]].x = tmp;
+		clickLocations[clickSection.inflTrack[0]].xx = tmp + (1114/35);
+		setAllowableClicks(1, clickSection.inflTrack);
+	}
+	if (price <= peeps[pl].money) {
+		setAllowableClicks(2, clickSection.cancel);
+	}
+		
+	influenceUse = 1;
+}								
+
+function setInflFameClick(pl) {
+	if (peeps[pl].infl.locNum && (gFame < 19)) {
+		var tmp = Math.floor((peeps[pl].infl.locNum - 1) / 5) * 5;
+		tmp = Math.floor((1114 / 35) * tmp) + 6;
+		clickLocations[clickSection.inflTrack[0]].x = tmp;
+		clickLocations[clickSection.inflTrack[0]].xx = tmp + (1114/35);
+		setAllowableClicks(1, clickSection.inflTrack);
+	}
+	setAllowableClicks(2, clickSection.cancel);
+	influenceUse = 2;
+}
+
+function setArtistFameClick() {
+	var foundAny = 0;
+	for (var a=0; a<8; a++) {
+		// to be fame-able, artist must be discovered and have fame < 19
+		if (artist[a].disc && (artist[a].fame < 19)) {
+			allowableClicks[a + clickSection.artists[0]] = 1;
+			foundAny = 1;
+		}
+	}
+	if (!foundAny) {
+		setAllowableClicks(1, clickSection.cancel);
+	}
+}					
+
+function clearAllowableClicks() {
+	setAllowableClicks(0, [0, allowableClicks.length-1]);
+	influenceUse = 0;
+}
+	
+function setAllowableClicks(setTo, fromTo) {
+	for (var c=fromTo[0]; c<=fromTo[1]; c++) {
+		allowableClicks[c] = setTo;
+	}
+}
+	
+function nextPlayer(cp) {
+	if (intermediateScoring == 1) {
+		intermediateScoring = 2;
+		msgLog("Intermediate Scoring!");
+		for (var p=0; p<peeps.length; p++) {
+			if (player[p].enabled == 1) {
+				peeps[p].moneyBonus();
+				peeps[p].influenceBonus();
+			}
+		}
+	}
+	if (finalRound) {
+		// we are in last or next to last round
+		// if current player is lacerda (must be next to last round) or in last round, incr finalRound
+        if ((cp = lacerdaPlNum) || (finalRound ==2)) {
+            finalRound++;
+        }
+
+		// final round is player only (no lacerda)
+		if (finalRound == 2) {
+			msgLog("Final Round!");
+			return 0;
+		}
+		// after final round, score
+		if (finalRound == 3) {
+			msgLog("Final Scoring!");
+			finalScoring();
+			finalRound++;
+		}
+	}
+	for (var i=1; i<4; i++) {
+		var tmp = (cp + i) % 4;
+		if (player[tmp].enabled) {
+			return tmp;
+		}
+	}
+	return -1; // this should cause error
+}
+
+function finalScoring() {
+	// TODO will need state info due to auction art selection if players > 1
+	//      also need to deal with >1 player
+	// IM market majorities
+	var majorityBonus = [[6,3,1],[10,6,3],[15,10,6]];
+	var auctionBid = [0,0,0,0];
+	var auctionTieTo;
+	for (var c=0; c<3; c++) {
+		var pHas = [0,0,0,0];
+		for (var r=0; r<7; r++) {
+			if (intlMkt[r][c] && (intlMkt[r][c].pType==pTypes.asst)) {
+				pHas[intlMkt[r][c].plNum]++;
+				if (r>3) {
+					// add auction bids
+					var tmpP = [0,0,0,0,1,3,6];
+					auctionBid[intlMkt[r][c].plNum] += tmpP[r];
+					auctionTieTo = intlMkt[r][c].plNum;
+				}
+			}
+		}
+		// simplified for solo play
+		if (pHas[0] > pHas[1]) {
+			// player has most
+			moneyMsg(" for winning column " + c, 0, majorityBonus[c][0]);
+		} else if (pHas[0]) {
+			// player has at least 1
+			if (pHas[0] == pHas[1]) {
+				// player tied with Vital
+				moneyMsg(" for tieing column " + c, 0, Math.floor((majorityBonus[c][0] + majorityBonus[c][1])/2));
+			} else {
+				// player gets second place
+				moneyMsg(" for 2nd place in column " + c, 0, majorityBonus[c][1]);
+			}
+		}
+	}
+		
+	//  repTiles in office
+	var rtInfluence = peeps[0].infl.locNum;	// needed for repTile 0
+	for (var t=0; t<6; t++) {
+		var rt = peeps[0].repTiles[t];
+		if (rt) {
+			var money2add = 0;
+			switch (rt.tNum) {
+				case 0:	// 1 money per 3 infl (score first)
+					money2add = Math.floor(rtInfluence / 3);
+					break;
+				case 1:	// 1 infl + 3 money per Collector
+					money2add = 3 * peeps[0].gallery.num[TCOLwhite];
+					peeps[0].addInfluence(peeps[0].gallery.num[TCOLwhite]);
+					break;
+				case 2:	// 1 infl + 2 money per VIP
+				case 3:	// 1 infl + 2 money per Investor
+					money2add = 2 * peeps[0].gallery.num[rt.tNum - 2];
+					peeps[0].addInfluence(peeps[0].gallery.num[rt.tNum - 2]);
+					break;
+				case 4: // 1 money per visitor
+					for (var v=0; v<3; v++) {
+						money2add += peeps[0].gallery.num[v];
+					}
+					break;
+				case 5: // 4 money per set of visitors
+					money2add = 4 * Math.min(...peeps[0].gallery.num);
+					break;
+				case 6: // 1 infl + 2 money per repTile
+					for (var v=0; v<6; v++) {
+						if (peeps[0].repTiles[v]) {
+							money2add += 2;
+							peeps[0].addInfluence(1);
+						}
+					}
+					break;
+				case 7: // 1 infl + 3 money per asst in auction
+					for (var a=0; a<10; a++) {
+						if ((peeps[0].asst[a].locType == locs.intlMkt) && (peeps[0].asst[a].locNum > 11)) {
+							money2add += 3;
+							peeps[0].addInfluence(1);
+						}
+					}
+					break;
+				case 8: // 1 infl + 1 money per asst not unemployed
+					for (var a=0; a<10; a++) {
+						if ((peeps[0].asst[a].locType != locs.unemp)) {
+							money2add += 1;
+							peeps[0].addInfluence(1);
+						}
+					}
+					break;
+				case 9: // 2 money per artist with 4 thumb or higher
+					for (var a=0; a<8; a++) {
+						if ((artist[a].thumb & 0xf) >= 4) {
+							money2add += 2;
+						}
+					}
+					break;
+				case 10: // 2 money per work of art acquired
+					for (var a=0; a<4; a++) {
+						money2add += 2 * peeps[0].everHad[a];
+					}
+					break;
+				case 11: // 1 infl + 3 money per artwork sold
+					for (var a=0; a<4; a++) {
+						money2add += 3 * soldArt[0][a];
+						peeps[0].addInfluence(soldArt[0][a]);
+					}
+					break;
+				case 12: // 1 infl + 3 money per artwork on exhibit
+					money2add = 3 * peeps[0].displayArt.length;
+					peeps[0].addInfluence(peeps[0].displayArt.length);
+					break;
+				case 13: // 1 infl + 2 money per art type acquired
+					for (var a=0; a<4; a++) {
+						if (peeps[0].everHad[a]) {
+							money2add += 2;
+							peeps[0].addInfluence(1);
+						}
+					}
+					break;
+				case 14: // 1 infl + 3 money per photograph acquired
+				case 15: // 1 infl + 3 money per painting acquired
+				case 16: // 1 infl + 3 money per digital art acquired
+				case 17: // 1 infl + 3 money per sculpture acquired
+					var conv = [3,1,0,2];
+					var tmpT = conv[rt.tNum - 14]; // tmpT = art type
+					money2add = 3 * peeps[0].everHad[tmpT];
+					peeps[0].addInfluence(peeps[0].everHad[tmpT]);
+					break;
+				case 18: // 1 infl + 2 money per artist with 15+ fame
+					for (var a=0; a<8; a++) {
+						if ((artist[a].fame) >= 15) {
+							money2add += 2;
+							peeps[0].addInfluence(1);
+						}
+					}
+					break;
+				case 19: // 2 infl + 4 money per Masterpiece on exhibit
+					for (var a=0; a<peeps[0].displayArt.length; a++) {
+						if (peeps[0].displayArt[a].byArtist.fame > 18) {
+							money2add += 4;
+							peeps[0].addInfluence(2);
+						}
+					}
+					break;
+			}
+			moneyMsg(" for tile " + (t+1), 0, money2add);
+		}
+	}	
+					
+					
+	
+	// sale value of exhibited art
+	for (var a=0; a<peeps[0].displayArt.length; a++) {
+		moneyMsg(" for exhibited work " + (a+1), 0, artValue(peeps[0].displayArt[a].byArtist));
+	}
+	// auction reknowned works
+	var playerWinsAuction = 0;
+	if (auctionBid[0]) {
+		if ((auctionBid[0] > auctionBid[1]) ||
+			((auctionBid[0] == auctionBid[1]) && (auctionTieTo==0))) {
+			// player wins auction
+            if (!artist[auctionWorks[0].type].disc) {
+                if (!artist[auctionWorks[0].type + 4].disc) {
+                    msgLog("No artist discovered for auction art, gain value of red artist");
+                    // for undiscovered artist fame==initFame
+                    moneyMsg(" for auction work value", 0, artValue(artist[auctionWorks[0].type + 4]));
+                } else {
+                    // only red artist discovered
+                    moneyMsg(" for auction work value", 0, artValue(artist[auctionWorks[0].type + 4]));
+                }
+            } else if (!artist[auctionWorks[0].type + 4].disc) {
+                // only blue artist disovered
+                moneyMsg(" for auction work value", 0, artValue(artist[auctionWorks[0].type]));
+            } else {
+                // both red and blue discovered, get most valuable
+                if (artValue(artist[auctionWorks[0].type]) > artValue(artist[auctionWorks[0].type + 4])) {
+                    // blue is more valuable
+                    moneyMsg(" for auction work value", 0, artValue(artist[auctionWorks[0].type]));
+                } else {
+                    // red is more valuable (or they are the same)
+                    moneyMsg(" for auction work value", 0, artValue(artist[auctionWorks[0].type + 4]));
+                }
+            }
+			playerWinsAuction = 1;
+		}
+	}
+	var cVal = curatorValue(0);
+	var dVal = dealerValue(0);
+	if (playerWinsAuction) {
+		// following lines "move" auction work to both player gallery and sold pile
+        // we then see which is better and use that one
+        peeps[0].displayArt.push(auctionWorks[0]);
+		soldArt[0][auctionWorks[0].type]++;
+		if ((cVal + dealerValue(0)) > (curatorValue(0) + dVal)) {
+			// better to move auction work to sell pile
+			dVal = dealerValue(0);
+		} else {
+			cVal = curatorValue(0);
+		}
+        peeps[0].displayArt.pop();
+        soldArt[0][auctionWorks[0].type]--;
+	}
+	// curator card
+	moneyMsg(" for curator card", 0, cVal);
+	// dealer card
+	moneyMsg(" for dealer card", 0, dVal);
+	// influence track
+	moneyMsg(" for influence track", 0, inflValue[peeps[0].infl.locNum]);
+	
+    var d = new Date();
+    msgLog(d);
+    msgLog("Elapsed time:" + Math.floor((d.getTime()-startTime)/60000) + " minutes");
+
+	// TODO show score level?
+	
+    canvas.removeEventListener('click', mouseClick);
+}
+
+function curatorValue(pl) {
+	var ret=0;
+	var hasType = [0,0,0,0];
+	for (var a=0; a<peeps[pl].displayArt.length; a++) {
+		hasType[peeps[pl].displayArt[a].type]++;
+	}
+	for (var b=0; b<2; b++) {
+		var getBonus = 10 + 5*(b==1);
+		for (var t=0; t<4; t++) {
+			if (hasType[t] < curatorCards[curator[pl]][b][t]) {
+				getBonus = 0;
+			}
+		}
+		ret += getBonus;
+	}
+	return ret;
+}
+	
+function dealerValue(pl) {
+	var ret=0;
+	for (var b=0; b<3; b++) {
+		var getBonus = 5 + 5*(b>0);
+		for (var t=0; t<4; t++) {
+			if (soldArt[pl][t] < dealerCards[dealer[pl]][b][t]) {
+				getBonus = 0;
+			}
+		}
+		ret += getBonus;
+	}
+	return ret;
+}
+	
+
+function whatPlayer(i) {
+	// return basic info for an action spot
+	return({asst: (i.pType == pTypes.asst), player: i.plNum, me: i.pieceNum });
+}
+
+function fromDesk(pl) {
+	// find an assistant at a desk (return 0-9 if found)
+	// if none found return -1 if any are at action spots
+	// -2 if there are none available at all
+	var ret = -2;
+	for (var a=0; a<10; a++) {
+		var tmpL = peeps[pl].asst[a].locType;
+		if (tmpL == locs.desk) {
+			return a;
+		}
+		if ((player[pl].enabled==2) && (tmpL == locs.pile)) {
+			return a; // for Lacerda
+		}
+		if ((tmpL == locs.action) || (tmpL == locs.ko)) {
+			ret = -1;
+		}
+	}
+	return ret;
+}
+
+function setAsstClicks(pl) {
+	for (var a=0; a<10; a++) {
+		var tmpL = peeps[pl].asst[a].locType;
+		if ((tmpL == locs.action)) {
+			allowableClicks[clickSection.action[0] + peeps[pl].asst[a].locNum] = 1;
+		}
+		if ((tmpL == locs.ko)) {
+			allowableClicks[clickSection.action[0] + peeps[pl].asst[a].locNum] = 1;
+		}
+	}
+	return;
+}
+
+function setUseTixClicks(pl) {
+	for (var c=0; c<3; c++) {
+		if (peeps[pl].tix[c].numTix) {
+			allowableClicks[clickSection.tix[0] + c] = 1;
+			clickLocations[clickSection.tix[0] + c].x = 405;
+			clickLocations[clickSection.tix[0] + c].xx = 461;
+			clickLocations[clickSection.tix[0] + c].y = 828 + c*34;
+			clickLocations[clickSection.tix[0] + c].yy = 852 + c*34;
+		}
+	}
+	setAllowableClicks(2 - eaAvailable, clickSection.cancel);
+}
+
+function setUseBonusClicks(pl) {
+	// any contracts open for bonus?
+	for (var c=0; c<3; c++) {
+		if (peeps[pl].contract[c] && peeps[pl].contract[c].bonusAvailable) {
+			allowableClicks[clickSection.playerContracts[0] + c] = 1;
+		}
+	}
+	setAllowableClicks(1, clickSection.cancel);
+}
+
+function setContractSpaces() {
+	var somethingSet = 0;
+	for (var c=0; c<3; c++) {
+		if (!peeps[activePlayer].contract || !peeps[activePlayer].contract[c].faceUp) {
+			allowableClicks[clickSection.playerContracts[0] + c] = 1;
+			somethingSet = 1;
+		}
+	}
+	return somethingSet;
+}
+
+function setEaClicks(pl) {
+	var somethingSet = 0;
+	// any tix to use?
+	if (peeps[pl].tix[TCOLpink].numTix || peeps[pl].tix[TCOLbrown].numTix || peeps[pl].tix[TCOLwhite].numTix) {
+		allowableClicks[clickSection.ea[0]] = 1;
+		somethingSet = 1;
+	}
+	// any available asst?
+	if (fromDesk(pl) != -2) {
+		// any contracts open for bonus?
+		for (var c=0; c<3; c++) {
+			if (peeps[pl].contract[c] && peeps[pl].contract[c].bonusAvailable) {
+				allowableClicks[clickSection.ea[1]] = 1;
+				somethingSet = 1;
+				break;
+			}
+		}
+	}
+	return somethingSet;
+}
+
+function setPromotableClicks(pl) {
+	// max 5 influence needed for promotion
+	var somethingSet = 0;
+	var plInfl = Math.min(5,peeps[pl].infl.locNum);
+	for (var a=0; a<8; a++) {
+		// can promote artist if discovered AND
+		//  we have enough influence (1 more than thumb level) AND
+		//  there are >0 thumb tokens of needed promo level
+		//	(note: plInfl max is 5 so no need to check thumb < 5)
+		//  (note: promos[0..4] so NEEDED promo is aThumb {not aThumb+1})
+		var aThumb = artist[a].thumb & 0xf;
+		if (artist[a].disc && (aThumb < plInfl) && (promos[aThumb])) {
+			allowableClicks[clickSection.artists[0] + a] = 1;
+			somethingSet = 1;
+		}
+	}
+	return somethingSet;
+}
+
+function setUnemployedClicks(pl) {
+	var somethingSet = 0;
+	// how many desks empty?
+	var numempty = 4;
+	for (var a=0; a<10; a++) {
+		if (peeps[pl].asst[a].locType == locs.desk) {
+			numempty--;
+		}
+		if (peeps[pl].asst[a].locType == locs.unemp) {
+			gAsstToGet = a;	// remember first unempl worker (i.e. highest num)
+		}
+	}
+	var empNum = 8;
+	var cloc = clickSection.unemp[0];
+	while (numempty && empNum) {
+		empNum--;
+		if (peeps[pl].asst[empNum].locType == locs.unemp) {
+			numempty--;
+			allowableClicks[cloc] = 1;
+			clickLocations[cloc].x = xy[locs.unemp][0].x - 15;
+			clickLocations[cloc].xx = xy[locs.unemp][0].x + 23;
+			clickLocations[cloc].y = xy[locs.unemp][0].y - 12 - ((915-756)/7)*(empNum);
+ 			clickLocations[cloc].yy = clickLocations[cloc].y + 24;
+ 			cloc++;
+			somethingSet = 1;
+		}
+	}	
+	return somethingSet;
+}
+
+var peeps = [];
+	
+function init() {
+    
+    player[0].enabled = 1; // 1=normal player
+    lacerdaPlNum = 1;
+    player[lacerdaPlNum].enabled = 2; // 2=Lacerda
+    
+    activePlayer = 0;
+    turnPlayer = 0;
+    
+    allowableClicks.length = clickLocations.length;
+    for (var i=0; i< allowableClicks.length; i++) {
+		allowableClicks[i] = 0;
+	}
+	setAllowableClicks(1, clickSection.action);
+//    player[1].enabled = 1;
+    for (var p=0; p<2; p++) {
+		peeps[p] = new Player(p);
+		// set up assistant for normal enabled player
+		if (player[p].enabled == 1) {
+			for (var a=0; a < 10; a++ ) {
+				if (a < 8) {
+					// unemployed
+					peeps[p].asst[a].setLoc(a, locs.unemp);
+				} else {
+					// at desk (12 is first desk loc)
+					peeps[p].asst[a].setLoc(a - 8, locs.desk);
+				}
+			}
+		}
+	
+			
+	}
+		
+	
+	// init visitors
+	bagVisitors = new Visitors(VLOCbag);
+	plazaVisitors = new Visitors(VLOCplaza);
+	aVisitors[0] = new AnimeVisitors();
+	aVisitors[1] = new AnimeVisitors();
+    
+    for (var j=clickSection.lobbies[0]; j<=clickSection.lobbies[1]; j++) {
+        var mid = (clickLocations[j].x + clickLocations[j].xx) / 2;
+        clickLocations[j].x = mid - (1.5 * vcSize);
+        clickLocations[j].xx = mid + (1.5 * vcSize);
+    }
+	
+	//init artists
+	artBonus = shuffle(artBonus);
+	
+	for (var a=0; a<8; a++) {
+		var tmpA = Math.floor(Math.random()*2);
+		var tmpF = startFame[a % 4] + (4*(a>3)) + 3*(tmpA);
+		if ((tmpA == 1) && (a>0) && (a<3)) {tmpF--;}
+		artist.push({thumb:  tmpA + (a>3)*2,
+					 fame: tmpF,
+					 iAmBlue: (a<4)*1,
+					 initFame: tmpF,
+					 disc: 0,
+					 visitors: new Visitors(VLOCartist + (a % 4)),
+					 tokens: 0,
+					 bonus: artBonus.pop()});
+		// move 1 white visitors from bagto red artists
+		if (a>3) {
+			artist[a].visitors.move(TCOLwhite, bagVisitors);
+		}
+	}
+	// select blue artist that starts discovered
+	{
+		var tmpD = Math.floor(Math.random()*4);
+		artist[tmpD].disc = 1;
+		artist[tmpD].tokens = 2;
+	}
+
+	
+
+	// init art
+	for (var t=0; t<4; t++) {
+		artPiles[t].push(new Art(t, 1, 0)); // 0+ fame, pink tix
+		artPiles[t].push(new Art(t, 1, 1)); // 0+ fame, brown tix
+		artPiles[t].push(new Art(t, 1, 2)); // 0+ fame, any tix
+		artPiles[t].push(new Art(t, 1, 2)); // 0+ fame, any tix
+		artPiles[t].push(new Art(t, 2, 3)); // 1+ fame, pink + brown/white tix
+		artPiles[t].push(new Art(t, 2, 4)); // 1+ fame, brown + pink/white tix
+		artPiles[t].push(new Art(t, 2, 5)); // 1+ fame, any 2 tix
+		artPiles[t].push(new Art(t, 3, 5)); // 2+ fame, any 2 tix
+		shuffle(artPiles[t]);
+	}
+		// choose auction work(s)
+	{
+		var tmpT = Math.floor(Math.random()*4);
+		for (var t=0; t<4; t++) {
+			var tmpArt = artPiles[t].shift();
+			if (t==tmpT) {
+				auctionWorks.push(tmpArt);
+			}
+		}
+	}
+	for (var t=0; t<4; t++) {
+		artVisitors[t] = new Visitors(VLOCart + t);
+		var tmpV = artTixNum[artPiles[t][0].tix];
+		for (var v=0; v<tmpV; v++) {
+			artVisitors[t].grabBag();
+		}
+	}
+	
+	//init contracts
+	for (var t=0; t<4; t++) {
+		for (var b=0; b<6; b++) {
+			allContracts[t*6+b] = new Contract(t, b);
+		}
+	}
+	for (var c=0; c<24; c++) {
+		contractPile.push(allContracts[c]);
+
+	}
+	contractPile = shuffle(contractPile);
+
+	for (var c=0; c<4; c++) {
+		contractPile[0].dealCard(c);
+	}
+	
+	//init reputation tiles
+	for (var c=0; c<20; c++) {
+		allReputation[c] = new RepTile(c);
+		repPile.push(allReputation[c]);
+	}
+	repPile = shuffle(repPile);
+	for (var r=0; r<7; r++) {
+		for (var c=0; c<3; c++) {
+			intlMkt[r][c] = 0;
+			if (r<4) {
+				if (c != 1) {
+					var tmpT = repPile.pop();
+					tmpT.setLoc(r*3 + c, RLOCintlMarket);					
+				}
+			}
+		}
+	}
+	for (var t=0; t<4; t++) {
+		repPile[t].setLoc(t, RLOCstartTile);
+	}
+	
+	//init lobby and gallery visitor numbers
+	for (var p=0; p<peeps.length; p++) {
+		if (player[p].enabled) {
+			peeps[p].lobby.grabBag();
+		}
+		plazaVisitors.grabBag();
+	}
+	
+	// init dealer and curator cards
+	curator = shuffle(curator);
+	dealer = shuffle(dealer);
+	
+	// init tix piles
+	tixRemain[TCOLpink] = new TixPile(10, TCOLpink, TLOCremain);
+	tixRemain[TCOLbrown] = new TixPile(10, TCOLbrown, TLOCremain);
+	tixRemain[TCOLwhite] = new TixPile(10, TCOLwhite, TLOCremain);
+	
+}
+
+var reptileImage;
+var dcCardsImage;
+var playerBoardImage = [];
+
+function main() {
+	state[0] = st.Start;
+    // create canvas and set width/height
+    canvas = document.createElement("canvas");
+
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = 1162;
+    canvas.height = 928;
+    if (!(!!canvas.getContext && canvas.getContext("2d"))) {
+	    alert("Your browser doesn't support HTML5, please update to latest version");
+    }
+
+    ctx = canvas.getContext("2d");
+    boardImage = new Image();
+    boardImage.src = "res/gal720.jpg";
+    playerBoardImage[0] = new Image();
+    playerBoardImage[0].src = "res/playerYellow720.jpg";
+    //~ playerBoardImage[1].src = "res/playerPurple720.jpg";
+//    playerBoardImage[2].src = "res/playerOrange720.jpg";
+//    playerBoardImage[3].src = "res/playerBlue720.jpg";
+    pieceImage = new Image();
+    pieceImage.src = "res/pieces720.png";
+    reptileImage = new Image();
+    reptileImage.src = "res/allrep.png";
+    dcCardsImage = new Image();
+    dcCardsImage.src = "res/dc_cards_lg.png";
+
+    // append canvas to document
+    document.body.appendChild(canvas);
+    
+    init();
+
+    canvas.addEventListener('click', mouseClick);
+
+    //~ canvas.addEventListener('mousemove', function(evt) {
+		//~ var mousePos = getMousePos(canvas, evt);
+		//~ document.getElementById("mouseloc").innerHTML = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+    //~ }, false);
+   
+
+
+}
+
+function shuffle(ar) {
+	for (var c=0; c<ar.length; c++) {
+		var tmpC;
+		var swap = Math.floor(Math.random()*ar.length);
+		tmpC = ar[c];
+		ar[c] = ar[swap];
+		ar[swap] = tmpC;
+	}
+	return ar;
+}
+
+var eogFlags = [0,0,0];
+
+function addEOG(eogType) {
+	eogFlags[eogType] = 1;
+	totalEOG = eogFlags[0] + eogFlags[1] + eogFlags[2];
+	// game over if tix run out in solo game or 2 eog events in multiplayer games
+	if (!finalRound && (((numPlayers == 1) && eogFlags[0]) || (totalEOG >= 2))) {
+		finalRound = 1;
+	}
+}
+
+var finalRound = 0;
+var totalEOG = 0;
+
+main();
+</script>
+
+<aside>
+	<div id="mouseloc"></div>
+	<p>-----------------</p>
+	<div id="playerinfo" style="font-size:20px"></div>
+	<p>-----------------</p>
+	<div id="gameinfo"></div>
+<textarea id="outbox" readonly rows="20" cols="60">
+Let's play The Gallerist!
+</textarea></aside>
+</body>
+</html>
