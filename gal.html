@@ -588,18 +588,18 @@ function lacerdaIM() {
 			} else {
 				for (var s=0; s<4; s++) {
 					if (actSpots[locs.action][s] && (actSpots[locs.action][s].plNum == lacerdaPlNum)) {
-						//~ actSpots[locs.action][s].goHome();
-						tmpA = actSpots[locs.action][s].pieceNum;
+						actSpots[locs.action][s].goHome();
+						//~ tmpA = actSpots[locs.action][s].pieceNum;
                         break;
 					}
 					if (actSpots[locs.ko][s] && (actSpots[locs.ko][s].plNum == lacerdaPlNum)) {
-						//~ actSpots[locs.ko][s].goHome();
-						tmpA = actSpots[locs.ko][s].pieceNum;
+						actSpots[locs.ko][s].goHome();
+						//~ tmpA = actSpots[locs.ko][s].pieceNum;
 						break;
 					}
 				}
+                tmpA = fromDesk(lacerdaPlNum);
 			}
-            //~ tmpA = fromDesk(lacerdaPlNum);
 		}
 		if (tmpA >= 0) {
 			msgLog("Lacerda places asst. in IM. Col:" + gLacCol + " Row:" + gLacRow);
