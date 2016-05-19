@@ -587,7 +587,7 @@ function lacerdaIM() {
 				tmpA = actSpots[locs.ko][3].pieceNum;
 			} else {
 				for (var s=0; s<4; s++) {
-					if (actSpots[locs.action][s] && (actSpots[locs.action][s].plNum == lacerdaPlNum)) {
+					if ((s != 3) && actSpots[locs.action][s] && (actSpots[locs.action][s].plNum == lacerdaPlNum)) {
 						actSpots[locs.action][s].goHome();
 						//~ tmpA = actSpots[locs.action][s].pieceNum;
                         break;
@@ -613,7 +613,7 @@ function lacerdaIM() {
             for (var a=0; a<10; a++) {
                 var tmpL = peeps[lacerdaPlNum].asst[a].locType;
                 if ((tmpL == locs.action) || (tmpL == locs.ko)) {
-                    msgLog("Lacerda moves asst. from " + locText[peeps[lacerdaPlNum].asst[a].locNum] + "to IM. Col:" + gLacCol + " Row:" + gLacRow);
+                    msgLog("Lacerda moves asst. from " + locText[peeps[lacerdaPlNum].asst[a].locNum] + " to IM. Col:" + gLacCol + " Row:" + gLacRow);
                     peeps[lacerdaPlNum].asst[a].setLoc(gLacRow*3+gLacCol, locs.intlMkt);
                     break;
                 }
