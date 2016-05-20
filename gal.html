@@ -2593,6 +2593,8 @@ function finalScoring() {
 	// influence track
 	moneyMsg(" for influence track", 0, inflValue[peeps[0].infl.locNum]);
 	
+    msgLog("total: $" + peeps[0].money);
+	
     var d = new Date();
     msgLog(d);
     msgLog("Elapsed time:" + Math.floor((d.getTime()-startTime)/60000) + " minutes");
