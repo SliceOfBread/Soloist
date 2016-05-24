@@ -34,7 +34,7 @@ Contract.prototype.draw = function() {
 		case CLOCplayer:
 			if (this.faceUp) {
 				// contract is face up (unfilled)
-				ctx.fillText("t:" + this.artType, this.currX - 25, this.currY - 12);
+				ctx.fillText(CArtTypes[this.artType], this.currX - 25, this.currY - 12);
 				ctx.fillText(bonusTypes[this.bonusType], this.currX - 25, this.currY + 38);
 			} else if (this.moneyUp) {
 				ctx.fillText("$", this.currX - 25, this.currY);

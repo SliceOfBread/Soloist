@@ -64,7 +64,7 @@ Art.prototype.draw = function() {
             } else {
                 ctx.fillStyle = 'red';
             }
-			ctx.fillText(this.type, this.currX-25, this.currY-20);
+			ctx.fillText(CArtTypes[this.type], this.currX-25, this.currY-20);
 			ctx.fillText("$" + artValue(this.byArtist), this.currX-25, this.currY+20);
 			break;
 	}
