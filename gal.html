@@ -1189,9 +1189,9 @@ function actionMediaCenter(loc) {
 			break;
 		case 3: // got tix/visitors
 			substate[0] = 4;
-			gFame = artist[artistNum].fame + 1;
-			gFame = Math.min(19, gFame);
+			gFame = artist[artistNum].fame;
 			if (gFame < 19) {
+                gFame++;
 				gFame += peeps[activePlayer].gallery.num[TCOLwhite];
 				gFame = Math.min(19, gFame);
 				if (gFame < 19) {
@@ -1201,9 +1201,9 @@ function actionMediaCenter(loc) {
 					clickProc = 0;
 					return;
 				}
+                if (gFame == 19) gotCelebrity(activePlayer);
+                artist[artistNum].fame = gFame;
 			}
-            if (gFame == 19) gotCelebrity(activePlayer);
-			artist[artistNum].fame = gFame;
 			endTurn();
 			break;
 			
